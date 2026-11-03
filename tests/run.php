@@ -102,4 +102,17 @@ try {
 }
 $assert($thrown, 'initData quá hạn phải bị từ chối');
 
+
+$botSource = file_get_contents(dirname(__DIR__) . '/app/BotService.php');
+$assert(is_string($botSource), 'đọc được BotService để kiểm tra cấu hình bàn phím');
+$assert(str_contains($botSource, "'thue_tool' => 'tools'"), 'callback menu THUÊ TOOL được ánh xạ');
+$assert(str_contains($botSource, "'rr88_mini' => 'live-game:RR88'"), 'callback RR88 MINI được ánh xạ');
+$assert(str_contains($botSource, "'kho_acc' => 'live-warehouse:RR88'"), 'callback kho ACC RR88 được ánh xạ');
+$assert(str_contains($botSource, "'text' => '📡 Proxy Tĩnh'"), 'menu mua hàng có Proxy Tĩnh');
+$assert(str_contains($botSource, "'text' => '🔄 Proxy Xoay'"), 'menu mua hàng có Proxy Xoay');
+$assert(str_contains($botSource, "'text' => 'SCAN ACC GAME'"), 'menu thuê tool hiển thị mục SCAN ACC ở chế độ an toàn');
+$assert(str_contains($botSource, "'member:tool-unavailable:account-scan'"), 'SCAN ACC không gọi dịch vụ dò/quét tài khoản');
+$assert(str_contains($botSource, "'member:tool-unavailable:sms-spam'"), 'SPAM SMS chỉ trả thông báo trạng thái');
+$assert(str_contains($botSource, "'callback_data' => 'menu_chinh'"), 'nút quay lại menu chính vẫn có callback tương thích');
+
 echo "Đã chạy {$checks} kiểm tra PHP.\n";
