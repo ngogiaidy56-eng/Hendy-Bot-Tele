@@ -726,16 +726,22 @@ final class BotService
                 $this->showAccountManagement($chatId);
                 return;
             case 'tool-unavailable:miniapp':
-                $this->showToolUnavailable($chatId, 'Mini App', 'WEBAPP_URL hoặc APP_URL HTTPS chưa được cấu hình trong môi trường chạy.');
+                $this->showToolUnavailable($chatId, 'Mini App', 'WEBAPP_URL hoặc APP_URL HTTPS chưa được cấu hình trong môi trường chạy.', 'account-center');
                 return;
             case 'tool-unavailable:bulk-promotion':
-                $this->showToolUnavailable($chatId, 'Nhận khuyến mãi hàng loạt', 'Chưa có API và điều khoản tích hợp từ nhà cung cấp. Tính năng đang tắt để tránh thao tác tự động ngoài quyền được cấp.');
+                $this->showToolUnavailable($chatId, 'Nhận khuyến mãi hàng loạt', 'Chưa có API và điều khoản tích hợp từ nhà cung cấp. Tính năng đang tắt để tránh thao tác tự động ngoài quyền được cấp.', 'tools');
+                return;
+            case 'tool-unavailable:bulk-promotion-vip':
+                $this->showToolUnavailable($chatId, 'Nhận khuyến mãi hàng loạt', 'Chưa có API và điều khoản tích hợp từ nhà cung cấp. Tính năng đang tắt để tránh thao tác tự động ngoài quyền được cấp.', 'viptools');
                 return;
             case 'tool-unavailable:sms-spam':
-                $this->showToolUnavailable($chatId, 'Gửi SMS hàng loạt', 'HENDY không cung cấp công cụ spam SMS hoặc gửi tin nhắn không được người nhận đồng ý.');
+                $this->showToolUnavailable($chatId, 'Gửi SMS hàng loạt', 'HENDY không cung cấp công cụ spam SMS hoặc gửi tin nhắn không được người nhận đồng ý.', 'tools');
+                return;
+            case 'tool-unavailable:sms-spam-vip':
+                $this->showToolUnavailable($chatId, 'Gửi SMS hàng loạt', 'HENDY không cung cấp công cụ spam SMS hoặc gửi tin nhắn không được người nhận đồng ý.', 'viptools');
                 return;
             case 'tool-unavailable:account-scan':
-                $this->showToolUnavailable($chatId, 'Quét ACC game', 'Bot không đăng nhập, dò mật khẩu hoặc quét tài khoản bên thứ ba. Bạn chỉ có thể lưu username của tài khoản do bạn sở hữu.');
+                $this->showToolUnavailable($chatId, 'Quét ACC game', 'Bot không đăng nhập, dò mật khẩu hoặc quét tài khoản bên thứ ba. Bạn chỉ có thể lưu username của tài khoản do bạn sở hữu.', 'tools');
                 return;
             case 'link-new':
                 $rows = [];
@@ -996,9 +1002,9 @@ final class BotService
         ]), [
             'reply_markup' => $this->inlineMenu([
                 [['text' => '🛡 CHECK LẠM DỤNG / GỬI CSKH', 'callback_data' => 'member:support-abuse']],
-                [['text' => '🎁 NHẬN KHUYẾN MÃI HÀNG LOẠT', 'callback_data' => 'member:tool-unavailable:bulk-promotion']],
+                [['text' => '🎁 NHẬN KHUYẾN MÃI HÀNG LOẠT', 'callback_data' => 'member:tool-unavailable:bulk-promotion-vip']],
                 [['text' => '🔗 GET LINK TẢI VIDEO', 'callback_data' => 'member:vietsub']],
-                [['text' => '🚫 SPAM SMS', 'callback_data' => 'member:tool-unavailable:sms-spam']],
+                [['text' => '🚫 SPAM SMS', 'callback_data' => 'member:tool-unavailable:sms-spam-vip']],
                 [['text' => '🔐 QUẢN LÝ USERNAME ACC GAME', 'callback_data' => 'member:linked-accounts']],
                 [['text' => '🎟 NHẬP CODE NHANH', 'callback_data' => 'member:gift']],
                 [['text' => '🧰 KHO THUÊ TOOL', 'callback_data' => 'member:tool-catalog']],
@@ -1007,19 +1013,27 @@ final class BotService
         ]);
     }
 
-    private function showToolUnavailable(string $chatId, string $title, string $reason): void
+    private function showToolUnavailable(string $chatId, string $title, string $reason, string $backAction = 'tools'): void
     {
+        $backAction = in_array($backAction, ['tools', 'viptools', 'account-center'], true)
+            ? $backAction
+            : 'tools';
+        $backLabel = match ($backAction) {
+            'viptools' => '« QUAY LẠI KHO CÔNG CỤ',
+            'account-center' => '« QUAY LẠI TRUNG TÂM TÀI KHOẢN',
+            default => '« QUAY LẠI MENU THUÊ TOOL',
+        };
+
         $this->sendBotMessage($chatId, '⏳ <b>' . self::escape($title) . '</b>' . "\n" .
             self::escape($reason) . "\n\n" .
             'Bạn có thể liên hệ CSKH để yêu cầu thông tin khi có tích hợp hợp lệ.', [
             'reply_markup' => $this->inlineMenu([
                 [['text' => '🧑‍💻 LIÊN HỆ CSKH', 'callback_data' => 'member:support']],
-                [['text' => '« QUAY LẠI KHO CÔNG CỤ', 'callback_data' => 'member:viptools']],
+                [['text' => $backLabel, 'callback_data' => 'member:' . $backAction]],
                 [['text' => '🏠 MENU CHÍNH', 'callback_data' => 'member:home']],
             ]),
         ]);
     }
-
     private function showAccountManagement(string $chatId): void
     {
         $url = $this->miniAppUrl();
@@ -1186,7 +1200,8 @@ final class BotService
             'text' => '📦 KHO ACC ' . $brand,
             'callback_data' => 'member:live-warehouse:' . $brand,
         ]];
-        $rows[] = [['text' => '« QUAY LẠI', 'callback_data' => 'member:live-group:' . $groupKey]];
+        $backAction = $brand === 'RR88' ? 'member:live' : 'member:live-group:' . $groupKey;
+        $rows[] = [['text' => '« QUAY LẠI', 'callback_data' => $backAction]];
         $this->sendBotMessage($chatId, implode("\n", $lines), [
             'reply_markup' => $this->inlineMenu($rows),
         ]);
