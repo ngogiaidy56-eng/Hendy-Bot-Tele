@@ -114,5 +114,8 @@ $assert(str_contains($botSource, "'text' => 'SCAN ACC GAME'"), 'menu thuê tool 
 $assert(str_contains($botSource, "'member:tool-unavailable:account-scan'"), 'SCAN ACC không gọi dịch vụ dò/quét tài khoản');
 $assert(str_contains($botSource, "'member:tool-unavailable:sms-spam'"), 'SPAM SMS chỉ trả thông báo trạng thái');
 $assert(str_contains($botSource, "'callback_data' => 'menu_chinh'"), 'nút quay lại menu chính vẫn có callback tương thích');
+$assert(str_contains($botSource, "'member:live' : 'member:live-group:' . $groupKey"), 'màn hình RR88 quay lại menu Mini Game rút gọn');
+$assert(str_contains($botSource, "'member:' . $backAction"), 'màn hình chức năng chưa tích hợp quay lại đúng submenu');
+$assert(str_contains($botSource, "'member:tool-unavailable:bulk-promotion-vip'"), 'menu đặc quyền giữ đúng luồng quay lại');
 
 echo "Đã chạy {$checks} kiểm tra PHP.\n";
