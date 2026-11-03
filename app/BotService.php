@@ -315,7 +315,6 @@ final class BotService
                 'shop_otp' => 'otp-products',
                 'shop_proxy' => 'proxy-products',
                 'get_free_proxy' => 'proxy-products',
-                'proxy_xoay' => 'proxy-products',
                 'otp_abcvip' => 'otp-products',
                 'otp_fb' => 'otp-products',
                 'otp_tele' => 'otp-products',
@@ -356,6 +355,9 @@ final class BotService
             $messageId = $this->activeCallbackMessageId;
             $this->activeCallbackMessageId = null;
             $this->activeCallbackChatId = null;
+            if (!array_key_exists('reply_markup', $options)) {
+                $options['reply_markup'] = ['inline_keyboard' => []];
+            }
             try {
                 return $this->telegram->editMessageText($chatId, $messageId, $text, $options);
             } catch (Throwable $error) {
@@ -704,13 +706,13 @@ final class BotService
                 $this->showShopProxyProducts($chatId, $userId, 'rotating');
                 return;
             case 'shop-all-proxy':
-                $this->showProducts($chatId, ['proxy'], '🌐 TẤT CẢ SẢN PHẨM PROXY', $userId);
+                $this->showProducts($chatId, ['proxy'], '🌐 TẤT CẢ SẢN PHẨM PROXY', $userId, 'shop');
                 return;
             case 'shop-otp':
-                $this->showProducts($chatId, ['otp'], '📱 KHO OTP SMS', $userId);
+                $this->showProducts($chatId, ['otp'], '📱 KHO OTP SMS', $userId, 'shop');
                 return;
             case 'shop-codes':
-                $this->showProducts($chatId, ['codes'], '🎁 KHO MÃ CODE', $userId);
+                $this->showProducts($chatId, ['codes'], '🎁 KHO MÃ CODE', $userId, 'shop');
                 return;
             case 'shop-orders':
                 $this->showOrders($chatId, $userId);
@@ -1306,7 +1308,7 @@ final class BotService
         $this->sendBotMessage($chatId, implode("\n", $lines), ['reply_markup' => $this->inlineMenu($rows)]);
     }
 
-    private function showProducts(string $chatId, array $categories, string $title, ?string $userId = null): void
+    private function showProducts(string $chatId, array $categories, string $title, ?string $userId = null, ?string $backAction = null): void
     {
         $placeholders = implode(',', array_fill(0, count($categories), '?'));
         $memberVip = $userId !== null ? (int) (Database::value('SELECT vip_level FROM users WHERE user_id = ?', [$userId]) ?? 0) : 0;
@@ -1330,6 +1332,9 @@ final class BotService
         }
         if ($rows === []) $lines[] = 'Hiện chưa có sản phẩm phù hợp hoặc tài khoản chưa đủ cấp VIP. Admin có thể quản lý kho sản phẩm.';
         $rows[] = [['text' => '🧾 ĐƠN HÀNG CỦA TÔI', 'callback_data' => 'member:orders']];
+        if ($backAction !== null && preg_match('/^[a-z0-9-]{1,40}$/', $backAction)) {
+            $rows[] = [['text' => '« QUAY LẠI MUA HÀNG', 'callback_data' => 'member:' . $backAction]];
+        }
         $rows[] = [['text' => '🏠 MENU CHÍNH', 'callback_data' => 'member:home']];
         $this->sendBotMessage($chatId, implode("\n", $lines), ['reply_markup' => $this->inlineMenu($rows)]);
     }
