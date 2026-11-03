@@ -19,18 +19,17 @@ final class BotService
 
 
     private const MENU = [
-        ['action' => 'live', 'label' => '🚀 MINIGAME LIVE', 'description' => 'Chọn nhóm nhà cái, game, gói dịch vụ và kho ACC cá nhân.', 'style' => 'primary'],
-        ['action' => 'tools', 'label' => '🧰 THUÊ TOOL (NEW)', 'description' => 'Mở catalog công cụ đang được Admin cung cấp.', 'style' => 'success'],
-        ['action' => 'shop', 'label' => '🛒 MUA HÀNG', 'description' => 'Proxy tĩnh, Proxy xoay, OTP và mã dịch vụ.', 'style' => 'danger'],
-        ['action' => 'wallet', 'label' => '💳 NẠP TIỀN', 'description' => 'Tạo yêu cầu nạp và mã VietQR.', 'style' => 'success'],
-        ['action' => 'viptools', 'label' => '💎 KHO CÔNG CỤ ĐẶC QUYỀN', 'description' => 'Các tiện ích, hỗ trợ và công cụ được cấp phép.', 'style' => 'primary'],
-        ['action' => 'account-center', 'label' => '👑 TRUNG TÂM QUẢN LÝ TÀI KHOẢN', 'description' => 'Mở Mini App hoặc đăng nhập website một lần.', 'style' => 'danger'],
+        ['action' => 'live', 'label' => 'MINIGAME LIVE', 'description' => 'RR88 MINI và kho ACC RR88 cá nhân.', 'style' => 'primary'],
+        ['action' => 'tools', 'label' => 'THUÊ TOOL (NEW)', 'description' => 'Các chức năng công cụ và tiện ích.', 'style' => 'success'],
+        ['action' => 'shop', 'label' => '🛒 MUA HÀNG', 'description' => 'Chọn Proxy Tĩnh hoặc Proxy Xoay.', 'style' => 'danger'],
+        ['action' => 'wallet', 'label' => 'NẠP TIỀN', 'description' => 'Tạo yêu cầu nạp và mã VietQR.', 'style' => 'success'],
+        ['action' => 'viptools', 'label' => 'KHO CÔNG CỤ ĐẶC QUYỀN', 'description' => 'Các tiện ích, hỗ trợ và công cụ được cấp phép.', 'style' => 'primary'],
+        ['action' => 'account-center', 'label' => 'TRUNG TÂM QUẢN LÝ TÀI KHOẢN', 'description' => 'Mở Mini App hoặc đăng nhập website một lần.', 'style' => 'danger'],
     ];
 
     private const MENU_LAYOUT = [
-        ['live'],
-        ['tools', 'shop'],
-        ['wallet'],
+        ['live', 'tools'],
+        ['shop', 'wallet'],
         ['viptools'],
         ['account-center'],
     ];
@@ -290,6 +289,9 @@ final class BotService
                 'menu_chinh' => 'home',
                 'menu_minigame' => 'live',
                 'minigame_live' => 'live',
+                'thue_tool' => 'tools',
+                'rr88_mini' => 'live-game:RR88',
+                'kho_acc' => 'live-warehouse:RR88',
                 'mua_hang' => 'shop',
                 'nap_tien' => 'wallet',
                 'kho_cong_cu' => 'viptools',
@@ -546,7 +548,10 @@ final class BotService
             }
             if ($row !== []) $rows[] = $row;
         }
-        if (($config['menu_mode'] ?? 'reply_keyboard') === 'inline_keyboard') return ['inline_keyboard' => $rows];
+        if (($config['menu_mode'] ?? 'reply_keyboard') === 'inline_keyboard') {
+            $rows[] = [['text' => '« QUAY LẠI', 'callback_data' => 'menu_chinh']];
+            return ['inline_keyboard' => $rows];
+        }
         return [
             'keyboard' => $this->replyRows($items, $config),
             'resize_keyboard' => $this->toBool($config['resize_keyboard'] ?? true),
@@ -769,7 +774,10 @@ final class BotService
                 $this->showOtpHistory($chatId, $userId);
                 return;
             case 'tools':
-                $this->showProducts($chatId, ['tools'], '🧰 THUÊ TOOL', $userId);
+                $this->showToolActionsMenu($chatId);
+                return;
+            case 'tool-catalog':
+                $this->showProducts($chatId, ['tools'], '🧰 KHO THUÊ TOOL', $userId);
                 return;
             case 'codes':
                 $this->showProducts($chatId, ['codes'], '🎁 KHO MÃ CODE', $userId);
@@ -885,32 +893,20 @@ final class BotService
 
     private function showShopMenu(string $chatId): void
     {
-        $counts = Database::one(
-            "SELECT COUNT(*) FILTER (WHERE category = 'proxy' AND is_active = TRUE AND (stock IS NULL OR stock > 0)) AS proxy_count,
-                    COUNT(*) FILTER (WHERE category = 'otp' AND is_active = TRUE AND (stock IS NULL OR stock > 0)) AS otp_count,
-                    COUNT(*) FILTER (WHERE category = 'codes' AND is_active = TRUE AND (stock IS NULL OR stock > 0)) AS code_count
-             FROM products"
-        ) ?? [];
         $this->sendBotMessage($chatId, implode("\n", [
-            '🛒 <b>MUA HÀNG & DỊCH VỤ</b>',
+            '🛒 <b>MUA HÀNG</b>',
             '━━━━━━━━━━━━━━━━━━━━',
-            'Chọn nhóm sản phẩm. Giá, tồn kho và điều kiện mua được đọc từ catalog PostgreSQL.',
-            '🌐 Proxy: <b>' . (int) ($counts['proxy_count'] ?? 0) . '</b> sản phẩm',
-            '📱 OTP: <b>' . (int) ($counts['otp_count'] ?? 0) . '</b> sản phẩm',
-            '🎁 Mã dịch vụ: <b>' . (int) ($counts['code_count'] ?? 0) . '</b> sản phẩm',
+            'Chọn loại Proxy cần xem. Giá và tồn kho sẽ lấy trực tiếp từ catalog sản phẩm.',
         ]), [
             'reply_markup' => $this->inlineMenu([
-                [['text' => '📡 PROXY TĨNH', 'callback_data' => 'member:shop-proxy-static']],
-                [['text' => '🔄 PROXY XOAY', 'callback_data' => 'member:shop-proxy-rotating']],
-                [['text' => '🌐 TẤT CẢ PROXY', 'callback_data' => 'member:shop-all-proxy']],
-                [['text' => '📲 OTP SMS', 'callback_data' => 'member:shop-otp']],
-                [['text' => '🎁 MÃ CODE', 'callback_data' => 'member:shop-codes']],
-                [['text' => '🧾 ĐƠN HÀNG CỦA TÔI', 'callback_data' => 'member:shop-orders']],
+                [
+                    ['text' => '📡 Proxy Tĩnh', 'callback_data' => 'member:shop-proxy-static'],
+                    ['text' => '🔄 Proxy Xoay', 'callback_data' => 'member:shop-proxy-rotating'],
+                ],
                 [['text' => '« TRỞ VỀ MENU CHÍNH', 'callback_data' => 'member:home']],
             ]),
         ]);
     }
-
     private function showShopProxyProducts(string $chatId, string $userId, string $kind): void
     {
         if (!in_array($kind, ['static', 'rotating'], true)) {
@@ -966,6 +962,31 @@ final class BotService
         ]);
     }
 
+    private function showToolActionsMenu(string $chatId): void
+    {
+        $this->sendBotMessage($chatId, implode("\n", [
+            '🧰 <b>THUÊ TOOL (NEW)</b>',
+            '━━━━━━━━━━━━━━━━━━━━',
+            'Chọn chức năng. Những dịch vụ chưa có API hợp lệ sẽ được thông báo trạng thái thay vì giả lập hoạt động.',
+        ]), [
+            'reply_markup' => $this->inlineMenu([
+                [
+                    ['text' => 'CHECK LẠM DỤNG TỰ ĐỘNG', 'callback_data' => 'member:support-abuse'],
+                    ['text' => 'NHẬN KM HÀNG LOẠT', 'callback_data' => 'member:tool-unavailable:bulk-promotion'],
+                ],
+                [
+                    ['text' => 'GET LINK TẢI VIDEO', 'callback_data' => 'member:vietsub'],
+                    ['text' => 'SPAM SMS', 'callback_data' => 'member:tool-unavailable:sms-spam'],
+                ],
+                [
+                    ['text' => 'SCAN ACC GAME', 'callback_data' => 'member:tool-unavailable:account-scan'],
+                    ['text' => 'NHẬP CODE NHANH', 'callback_data' => 'member:gift'],
+                ],
+                [['text' => '« TRỞ VỀ MENU CHÍNH', 'callback_data' => 'member:home']],
+            ]),
+        ]);
+    }
+
     private function showPrivilegeTools(string $chatId): void
     {
         $this->sendBotMessage($chatId, implode("\n", [
@@ -980,7 +1001,7 @@ final class BotService
                 [['text' => '🚫 SPAM SMS', 'callback_data' => 'member:tool-unavailable:sms-spam']],
                 [['text' => '🔐 QUẢN LÝ USERNAME ACC GAME', 'callback_data' => 'member:linked-accounts']],
                 [['text' => '🎟 NHẬP CODE NHANH', 'callback_data' => 'member:gift']],
-                [['text' => '🧰 KHO THUÊ TOOL', 'callback_data' => 'member:tools']],
+                [['text' => '🧰 KHO THUÊ TOOL', 'callback_data' => 'member:tool-catalog']],
                 [['text' => '« TRỞ VỀ MENU CHÍNH', 'callback_data' => 'member:home']],
             ]),
         ]);
@@ -1060,38 +1081,28 @@ final class BotService
 
     private function showMinigameGroups(string $chatId, string $userId): void
     {
-        $counts = Database::all(
-            'SELECT brand, COUNT(*) AS account_count FROM linked_accounts WHERE user_id = ? GROUP BY brand',
+        $accountCount = (int) Database::value(
+            "SELECT COUNT(*) FROM linked_accounts WHERE user_id = ? AND brand = 'RR88'",
             [$userId]
         );
-        $countByBrand = [];
-        foreach ($counts as $count) {
-            $countByBrand[strtoupper((string) $count['brand'])] = (int) $count['account_count'];
-        }
 
         $lines = [
-            '🚀 <b>MINIGAME LIVE · CHỌN NHÓM NHÀ CÁI</b>',
+            '🚀 <b>MINIGAME LIVE · RR88 MINI</b>',
             '━━━━━━━━━━━━━━━━━━━━',
-            'Chọn nhóm để xem danh sách game. Kho ACC cá nhân được thống kê riêng theo username đã lưu.',
+            'Chọn gói RR88 MINI hoặc mở kho ACC cá nhân.',
+            '📦 Gói: <b>88 điểm · 9.000đ</b>',
+            '👤 Username trong kho cá nhân: <b>' . $accountCount . '</b>',
+            'Chỉ lưu username. Không gửi mật khẩu, PIN hoặc OTP.',
         ];
-        $rows = [];
-        foreach (self::MINIGAME_GROUPS as $groupKey => $group) {
-            $total = 0;
-            foreach ($group['brands'] as $brand) {
-                $total += $countByBrand[$brand] ?? 0;
-            }
-            $lines[] = '• ' . self::escape($group['label']) . ' — <b>' . $total . ' ACC</b>';
-            $rows[] = [[
-                'text' => $group['label'],
-                'callback_data' => 'member:live-group:' . $groupKey,
-            ]];
-        }
-        $rows[] = [['text' => '« QUAY LẠI MENU CHÍNH', 'callback_data' => 'member:home']];
+
         $this->sendBotMessage($chatId, implode("\n", $lines), [
-            'reply_markup' => $this->inlineMenu($rows),
+            'reply_markup' => $this->inlineMenu([
+                [['text' => '🎲 RR88 MINI | 88 ĐIỂM - 9,000đ', 'callback_data' => 'member:live-game:RR88']],
+                [['text' => '📦 KHO ACC RR88', 'callback_data' => 'member:live-warehouse:RR88']],
+                [['text' => '« TRỞ VỀ MENU CHÍNH', 'callback_data' => 'member:home']],
+            ]),
         ]);
     }
-
     private function showMinigameGroupGames(string $chatId, string $userId, string $groupKey): void
     {
         $group = self::MINIGAME_GROUPS[$groupKey] ?? null;
