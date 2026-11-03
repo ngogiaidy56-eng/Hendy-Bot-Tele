@@ -19,40 +19,26 @@ final class BotService
 
 
     private const MENU = [
-        ['action' => 'live', 'label' => '🚀 MINIGAME LIVE', 'description' => 'Kho tài khoản, dịch vụ Mini Game và hỗ trợ đơn.', 'style' => 'primary'],
-        ['action' => 'tools', 'label' => '🧰 THUÊ TOOL', 'description' => 'Thuê công cụ và theo dõi thời hạn.', 'style' => 'success'],
-        ['action' => 'codes', 'label' => '🎁 MUA CODE', 'description' => 'Mua mã và theo dõi đơn hàng.', 'style' => 'danger'],
-        ['action' => 'wallet', 'label' => '💳 NẠP TIỀN', 'description' => 'Tạo QR VietQR và xem trạng thái duyệt.', 'style' => 'success'],
-        ['action' => 'otp', 'label' => '📲 OTP & PROXY', 'description' => 'Thuê OTP, Proxy và quản lý kho đã thuê.', 'style' => 'primary'],
-        ['action' => 'viptools', 'label' => '💎 KHO VIP', 'description' => 'Công cụ và ưu đãi dành cho thành viên VIP.', 'style' => 'danger'],
-        ['action' => 'customer', 'label' => '👤 TRUNG TÂM KHÁCH HÀNG', 'description' => 'Hồ sơ, ví, tài khoản liên kết và lịch sử.', 'style' => 'primary'],
-        ['action' => 'miniapp', 'label' => '🌈 MỞ WEBSITE HENDY', 'description' => 'Mở website dịch vụ HENDY đã tích hợp đầy đủ tính năng dành riêng cho bot này.', 'style' => 'success'],
-        ['action' => 'vietsub', 'label' => '🎬 DỊCH VỤ VIETSUB', 'description' => 'Gửi video vào hàng đợi xử lý phụ đề.', 'style' => 'primary'],
-        ['action' => 'history', 'label' => '📜 LỊCH SỬ GIAO DỊCH', 'description' => 'Tra cứu yêu cầu nạp và biến động số dư.', 'style' => 'success'],
-        ['action' => 'jobs', 'label' => '📂 VIDEO JOBS', 'description' => 'Theo dõi tiến độ xử lý video.', 'style' => 'primary'],
-        ['action' => 'ref', 'label' => '🎊 GIỚI THIỆU REF', 'description' => 'Chia sẻ mã giới thiệu và theo dõi hoa hồng.', 'style' => 'danger'],
-        ['action' => 'vip', 'label' => '👑 TRUNG TÂM VIP', 'description' => 'Cấp VIP, quyền lợi và điểm danh.', 'style' => 'success'],
-        ['action' => 'group', 'label' => '💬 NHÓM CHAT', 'description' => 'Kết nối cộng đồng HENDY.', 'style' => 'primary'],
-        ['action' => 'news', 'label' => '📢 KÊNH THÔNG BÁO', 'description' => 'Nhận cập nhật dịch vụ và thông báo.', 'style' => 'danger'],
-        ['action' => 'gift', 'label' => '🎟️ GIFTCODE', 'description' => 'Kích hoạt mã quà tặng.', 'style' => 'success'],
-        ['action' => 'support', 'label' => '🧑‍💻 LIÊN HỆ CSKH', 'description' => 'Tạo ticket hỗ trợ với đội ngũ HENDY.', 'style' => 'primary'],
+        ['action' => 'live', 'label' => '🚀 MINIGAME LIVE', 'description' => 'Chọn nhóm nhà cái, game, gói dịch vụ và kho ACC cá nhân.', 'style' => 'primary'],
+        ['action' => 'tools', 'label' => '🧰 THUÊ TOOL (NEW)', 'description' => 'Mở catalog công cụ đang được Admin cung cấp.', 'style' => 'success'],
+        ['action' => 'shop', 'label' => '🛒 MUA HÀNG', 'description' => 'Proxy tĩnh, Proxy xoay, OTP và mã dịch vụ.', 'style' => 'danger'],
+        ['action' => 'wallet', 'label' => '💳 NẠP TIỀN', 'description' => 'Tạo yêu cầu nạp và mã VietQR.', 'style' => 'success'],
+        ['action' => 'viptools', 'label' => '💎 KHO CÔNG CỤ ĐẶC QUYỀN', 'description' => 'Các tiện ích, hỗ trợ và công cụ được cấp phép.', 'style' => 'primary'],
+        ['action' => 'account-center', 'label' => '👑 TRUNG TÂM QUẢN LÝ TÀI KHOẢN', 'description' => 'Mở Mini App hoặc đăng nhập website một lần.', 'style' => 'danger'],
     ];
 
     private const MENU_LAYOUT = [
-        ['live', 'tools'],
-        ['codes'],
-        ['wallet', 'otp'],
+        ['live'],
+        ['tools', 'shop'],
+        ['wallet'],
         ['viptools'],
-        ['customer'],
-        ['miniapp'],
-        ['vietsub', 'history'],
-        ['jobs', 'ref'],
-        ['vip', 'group', 'news'],
-        ['gift', 'support'],
+        ['account-center'],
     ];
 
     private TelegramApi $telegram;
     private string $botKey;
+    private ?int $activeCallbackMessageId = null;
+    private ?string $activeCallbackChatId = null;
 
     public function __construct(string $botKey)
     {
@@ -98,7 +84,7 @@ final class BotService
             );
             if ($chatId !== '') {
                 try {
-                    $this->telegram->sendMessage($chatId, '❌ Hệ thống chưa thể xử lý yêu cầu này. Vui lòng thử lại sau hoặc liên hệ CSKH.');
+                    $this->sendBotMessage($chatId, '❌ Hệ thống chưa thể xử lý yêu cầu này. Vui lòng thử lại sau hoặc liên hệ CSKH.');
                 } catch (Throwable $notifyError) {
                     error_log('[telegram:' . $this->botKey . '] Không gửi được thông báo lỗi: ' . $notifyError->getMessage());
                 }
@@ -159,7 +145,7 @@ final class BotService
         }
 
         if (preg_match('/^\/help(?:@\w+)?$/u', $text)) {
-            $this->telegram->sendMessage($chatId, implode("\n", [
+            $this->sendBotMessage($chatId, implode("\n", [
                 '🤖 <b>HENDY BOT</b>',
                 '/start — Mở menu chính',
                 '/menu — Hiển thị lại menu',
@@ -279,6 +265,8 @@ final class BotService
         $message = $callback['message'] ?? [];
         $chatId = (string) ($message['chat']['id'] ?? $userId);
         $data = (string) ($callback['data'] ?? '');
+        $this->activeCallbackMessageId = isset($message['message_id']) ? (int) $message['message_id'] : null;
+        $this->activeCallbackChatId = $chatId;
 
         try {
             if ($callbackId !== '') {
@@ -299,7 +287,22 @@ final class BotService
 
             $legacyActions = [
                 'back_home' => 'home',
+                'menu_chinh' => 'home',
                 'menu_minigame' => 'live',
+                'minigame_live' => 'live',
+                'mua_hang' => 'shop',
+                'nap_tien' => 'wallet',
+                'kho_cong_cu' => 'viptools',
+                'quan_ly_tai_khoan' => 'account-center',
+                'web_cu' => 'legacy-login',
+                'check_lam_dung' => 'support-abuse',
+                'nhan_km_loat' => 'tool-unavailable:bulk-promotion',
+                'get_link' => 'vietsub',
+                'spam_sms' => 'tool-unavailable:sms-spam',
+                'scan_acc' => 'tool-unavailable:account-scan',
+                'nhap_code' => 'gift',
+                'proxy_tinh' => 'shop-proxy-static',
+                'proxy_xoay' => 'shop-proxy-rotating',
                 'rr88_game' => 'live-game:RR88',
                 'mm88_game' => 'live-game:MM88',
                 'gg88_game' => 'live-game:GG88',
@@ -336,8 +339,30 @@ final class BotService
             $this->dispatchAction($chatId, $userId, $legacyActions[$data]);
         } catch (Throwable $error) {
             error_log('[telegram:' . $this->botKey . '] ' . $error->getMessage());
-            $this->telegram->sendMessage($chatId, '❌ ' . self::escape($error->getMessage()));
+            $this->sendBotMessage($chatId, '❌ ' . self::escape($error->getMessage()));
+        } finally {
+            $this->activeCallbackMessageId = null;
+            $this->activeCallbackChatId = null;
         }
+    }
+
+    /**
+     * Edit the active inline-keyboard message for callback navigation.
+     * Text commands and other outgoing notifications still create new messages.
+     */
+    private function sendBotMessage(string $chatId, string $text, array $options = []): array
+    {
+        if ($this->activeCallbackMessageId !== null && $this->activeCallbackChatId === $chatId) {
+            $messageId = $this->activeCallbackMessageId;
+            $this->activeCallbackMessageId = null;
+            $this->activeCallbackChatId = null;
+            try {
+                return $this->telegram->editMessageText($chatId, $messageId, $text, $options);
+            } catch (Throwable $error) {
+                error_log('[telegram:' . $this->botKey . '] Không sửa được menu cũ, gửi màn hình mới: ' . $error->getMessage());
+            }
+        }
+        return $this->telegram->sendMessage($chatId, $text, $options);
     }
 
     private static function isHttpsUrl(string $url): bool
@@ -413,7 +438,7 @@ final class BotService
         }
         $lines[] = implode(' · ', $links);
 
-        $this->telegram->sendMessage($chatId, implode("\n", $lines), [
+        $this->sendBotMessage($chatId, implode("\n", $lines), [
             'reply_markup' => $this->menuMarkup($items, $config),
         ]);
     }
@@ -421,9 +446,13 @@ final class BotService
     private function menuConfig(): array
     {
         $row = Database::one('SELECT * FROM bot_menu_configs WHERE bot_key = ?', [$this->botKey]);
-        return $row ?? [
+        if ($row !== null) {
+            $row['menu_mode'] = 'inline_keyboard';
+            return $row;
+        }
+        return [
             'bot_key' => $this->botKey,
-            'menu_mode' => 'reply_keyboard',
+            'menu_mode' => 'inline_keyboard',
             'intro_text' => 'Chào mừng bạn đến với HENDY BOT. Chọn dịch vụ ở bàn phím phía dưới để bắt đầu.',
             'menu_columns' => 2,
             'persistent_keyboard' => true,
@@ -598,7 +627,7 @@ final class BotService
             }
             $productId = (int) $matches[2];
             $this->setPending($userId, 'live_acc_username', ['brand' => $brand, 'product_id' => $productId]);
-            $this->telegram->sendMessage(
+            $this->sendBotMessage(
                 $chatId,
                 '➕ <b>THÊM ACC ' . self::escape($brand) . '</b>' . "\n" .
                 'Hãy gửi duy nhất username cần lưu vào kho cá nhân (3–64 ký tự, không có khoảng trắng).' . "\n" .
@@ -636,7 +665,7 @@ final class BotService
                 return;
             }
             $this->setPending($userId, 'link_username', ['brand' => $brand]);
-            $this->telegram->sendMessage($chatId, 'Bạn đã chọn <b>' . self::escape($brand) . '</b>. Hãy nhập username. Không gửi mật khẩu, PIN hoặc OTP.');
+            $this->sendBotMessage($chatId, 'Bạn đã chọn <b>' . self::escape($brand) . '</b>. Hãy nhập username. Không gửi mật khẩu, PIN hoặc OTP.');
             return;
         }
 
@@ -665,6 +694,42 @@ final class BotService
             case 'live':
                 $this->showMinigameGroups($chatId, $userId);
                 return;
+            case 'shop':
+                $this->showShopMenu($chatId);
+                return;
+            case 'shop-proxy-static':
+                $this->showShopProxyProducts($chatId, $userId, 'static');
+                return;
+            case 'shop-proxy-rotating':
+                $this->showShopProxyProducts($chatId, $userId, 'rotating');
+                return;
+            case 'shop-all-proxy':
+                $this->showProducts($chatId, ['proxy'], '🌐 TẤT CẢ SẢN PHẨM PROXY', $userId);
+                return;
+            case 'shop-otp':
+                $this->showProducts($chatId, ['otp'], '📱 KHO OTP SMS', $userId);
+                return;
+            case 'shop-codes':
+                $this->showProducts($chatId, ['codes'], '🎁 KHO MÃ CODE', $userId);
+                return;
+            case 'shop-orders':
+                $this->showOrders($chatId, $userId);
+                return;
+            case 'account-center':
+                $this->showAccountManagement($chatId);
+                return;
+            case 'tool-unavailable:miniapp':
+                $this->showToolUnavailable($chatId, 'Mini App', 'WEBAPP_URL hoặc APP_URL HTTPS chưa được cấu hình trong môi trường chạy.');
+                return;
+            case 'tool-unavailable:bulk-promotion':
+                $this->showToolUnavailable($chatId, 'Nhận khuyến mãi hàng loạt', 'Chưa có API và điều khoản tích hợp từ nhà cung cấp. Tính năng đang tắt để tránh thao tác tự động ngoài quyền được cấp.');
+                return;
+            case 'tool-unavailable:sms-spam':
+                $this->showToolUnavailable($chatId, 'Gửi SMS hàng loạt', 'HENDY không cung cấp công cụ spam SMS hoặc gửi tin nhắn không được người nhận đồng ý.');
+                return;
+            case 'tool-unavailable:account-scan':
+                $this->showToolUnavailable($chatId, 'Quét ACC game', 'Bot không đăng nhập, dò mật khẩu hoặc quét tài khoản bên thứ ba. Bạn chỉ có thể lưu username của tài khoản do bạn sở hữu.');
+                return;
             case 'link-new':
                 $rows = [];
                 foreach (array_chunk(self::BRANDS, 3) as $chunk) {
@@ -674,7 +739,7 @@ final class BotService
                     }
                     $rows[] = $row;
                 }
-                $this->telegram->sendMessage($chatId, '👉 <b>CHỌN HỆ THỐNG TÀI KHOẢN</b>' . "\nChỉ lưu username. ABCVIP sẽ mở cổng SSO chính thức nếu được cấu hình; không gửi mật khẩu, OTP hoặc mã xác minh.", [
+                $this->sendBotMessage($chatId, '👉 <b>CHỌN HỆ THỐNG TÀI KHOẢN</b>' . "\nChỉ lưu username. ABCVIP sẽ mở cổng SSO chính thức nếu được cấu hình; không gửi mật khẩu, OTP hoặc mã xác minh.", [
                     'reply_markup' => $this->inlineMenu($rows),
                 ]);
                 return;
@@ -712,20 +777,20 @@ final class BotService
                 return;
             case 'nyc-transfer':
                 $this->setPending($userId, 'nyc_transfer');
-                $this->telegram->sendMessage($chatId, '🪙 Nhập số tiền chuyển từ Ví Chính sang Ví NYC (từ 1.000 đến 500.000.000 VNĐ). Đây là chuyển nội bộ, không phải nạp ngân hàng.');
+                $this->sendBotMessage($chatId, '🪙 Nhập số tiền chuyển từ Ví Chính sang Ví NYC (từ 1.000 đến 500.000.000 VNĐ). Đây là chuyển nội bộ, không phải nạp ngân hàng.');
                 return;
             case 'otp-catalog':
                 $this->showProducts($chatId, ['otp'], '📱 KHO DỊCH VỤ OTP', $userId);
                 return;
             case 'viptools':
-                $this->showProducts($chatId, ['vip'], '🏆 KHO VIP', $userId);
+                $this->showPrivilegeTools($chatId);
                 return;
             case 'wallet':
                 $this->showWalletMenu($chatId, $userId);
                 return;
             case 'deposit:custom':
                 $this->setPending($userId, 'wallet');
-                $this->telegram->sendMessage($chatId, '✏️ Nhập số tiền cần nạp từ 10.000 đến 500.000.000 VNĐ. Ví dụ: <code>50000</code>.');
+                $this->sendBotMessage($chatId, '✏️ Nhập số tiền cần nạp từ 10.000 đến 500.000.000 VNĐ. Ví dụ: <code>50000</code>.');
                 return;
             case 'vietsub':
                 $this->startVideoRequest($chatId, $userId);
@@ -781,23 +846,23 @@ final class BotService
                 return;
             case 'gift':
                 $this->setPending($userId, 'giftcode');
-                $this->telegram->sendMessage($chatId, '🎟️ Vui lòng nhập mã Giftcode trong vòng 10 phút.');
+                $this->sendBotMessage($chatId, '🎟️ Vui lòng nhập mã Giftcode trong vòng 10 phút.');
                 return;
             case 'support-abuse':
                 $this->setPending($userId, 'support_abuse', ['stage' => 'order']);
-                $this->telegram->sendMessage($chatId, '🆘 <b>HỖ TRỢ DÍNH LẠM DỤNG (60%)</b>' . "\n" . 'Vui lòng nhập mã đơn hàng đã hoàn tất để CSKH kiểm tra. Yêu cầu chỉ được ghi nhận sau khi đối chiếu đơn; không tự động hoàn tiền hoặc cộng voucher.');
+                $this->sendBotMessage($chatId, '🆘 <b>HỖ TRỢ DÍNH LẠM DỤNG (60%)</b>' . "\n" . 'Vui lòng nhập mã đơn hàng đã hoàn tất để CSKH kiểm tra. Yêu cầu chỉ được ghi nhận sau khi đối chiếu đơn; không tự động hoàn tiền hoặc cộng voucher.');
                 return;
             case 'support':
                 $this->setPending($userId, 'support');
-                $this->telegram->sendMessage($chatId, '🧑‍💻 Hãy mô tả vấn đề cần hỗ trợ. Bot sẽ tạo ticket và gửi thông tin cho Admin.');
+                $this->sendBotMessage($chatId, '🧑‍💻 Hãy mô tả vấn đề cần hỗ trợ. Bot sẽ tạo ticket và gửi thông tin cho Admin.');
                 return;
             case 'miniapp':
                 $url = $this->miniAppUrl();
                 if ($url === '') {
-                    $this->telegram->sendMessage($chatId, 'Mini App chưa được cấu hình APP_URL HTTPS.');
+                    $this->sendBotMessage($chatId, 'Mini App chưa được cấu hình APP_URL HTTPS.');
                     return;
                 }
-                $this->telegram->sendMessage($chatId, '🌈 <b>MINI APP HENDY</b> — Mở giao diện dịch vụ của bot này.', ['reply_markup' => $this->inlineMenu([[['text' => '🚀 MỞ MINI APP', 'web_app' => ['url' => $url]]]])]);
+                $this->sendBotMessage($chatId, '🌈 <b>MINI APP HENDY</b> — Mở giao diện dịch vụ của bot này.', ['reply_markup' => $this->inlineMenu([[['text' => '🚀 MỞ MINI APP', 'web_app' => ['url' => $url]]]])]);
                 return;
             case 'admin':
                 $this->openAdmin($chatId, $userId);
@@ -812,8 +877,160 @@ final class BotService
                 $this->showAdminStats($chatId, $userId);
                 return;
             default:
-                $this->telegram->sendMessage($chatId, 'Chức năng chưa được cấu hình. Hãy chọn lại menu chính bằng /menu.');
+                $this->sendBotMessage($chatId, 'Chức năng chưa được cấu hình. Hãy chọn lại menu chính bằng /menu.');
         }
+    }
+
+    private function showShopMenu(string $chatId): void
+    {
+        $counts = Database::one(
+            "SELECT COUNT(*) FILTER (WHERE category = 'proxy' AND is_active = TRUE AND (stock IS NULL OR stock > 0)) AS proxy_count,
+                    COUNT(*) FILTER (WHERE category = 'otp' AND is_active = TRUE AND (stock IS NULL OR stock > 0)) AS otp_count,
+                    COUNT(*) FILTER (WHERE category = 'codes' AND is_active = TRUE AND (stock IS NULL OR stock > 0)) AS code_count
+             FROM products"
+        ) ?? [];
+        $this->sendBotMessage($chatId, implode("\n", [
+            '🛒 <b>MUA HÀNG & DỊCH VỤ</b>',
+            '━━━━━━━━━━━━━━━━━━━━',
+            'Chọn nhóm sản phẩm. Giá, tồn kho và điều kiện mua được đọc từ catalog PostgreSQL.',
+            '🌐 Proxy: <b>' . (int) ($counts['proxy_count'] ?? 0) . '</b> sản phẩm',
+            '📱 OTP: <b>' . (int) ($counts['otp_count'] ?? 0) . '</b> sản phẩm',
+            '🎁 Mã dịch vụ: <b>' . (int) ($counts['code_count'] ?? 0) . '</b> sản phẩm',
+        ]), [
+            'reply_markup' => $this->inlineMenu([
+                [['text' => '📡 PROXY TĨNH', 'callback_data' => 'member:shop-proxy-static']],
+                [['text' => '🔄 PROXY XOAY', 'callback_data' => 'member:shop-proxy-rotating']],
+                [['text' => '🌐 TẤT CẢ PROXY', 'callback_data' => 'member:shop-all-proxy']],
+                [['text' => '📲 OTP SMS', 'callback_data' => 'member:shop-otp']],
+                [['text' => '🎁 MÃ CODE', 'callback_data' => 'member:shop-codes']],
+                [['text' => '🧾 ĐƠN HÀNG CỦA TÔI', 'callback_data' => 'member:shop-orders']],
+                [['text' => '« TRỞ VỀ MENU CHÍNH', 'callback_data' => 'member:home']],
+            ]),
+        ]);
+    }
+
+    private function showShopProxyProducts(string $chatId, string $userId, string $kind): void
+    {
+        if (!in_array($kind, ['static', 'rotating'], true)) {
+            throw new RuntimeException('Loại Proxy không hợp lệ.');
+        }
+        $isStatic = $kind === 'static';
+        $label = $isStatic ? 'PROXY TĨNH' : 'PROXY XOAY';
+        $namePattern = $isStatic ? '%TĨNH%' : '%XOAY%';
+        $slugPattern = $isStatic ? '%STATIC%' : '%ROTAT%';
+        $metadataTypes = $isStatic ? ['STATIC', 'TINH'] : ['ROTATING', 'ROTATE', 'XOAY', 'DYNAMIC'];
+        $arrayLiteral = '{' . implode(',', $metadataTypes) . '}';
+        $products = Database::all(
+            "SELECT id, name, price, description, stock, duration_days, vip_level
+             FROM products
+             WHERE category = 'proxy' AND is_active = TRUE AND (stock IS NULL OR stock > 0)
+               AND (
+                 UPPER(name) LIKE UPPER(?)
+                 OR UPPER(slug) LIKE ?
+                 OR UPPER(COALESCE(metadata->>'proxy_type', metadata->>'type', '')) = ANY(?::text[])
+               )
+             ORDER BY created_at DESC LIMIT 30",
+            [$namePattern, $slugPattern, $arrayLiteral]
+        );
+        $vip = (int) (Database::value('SELECT vip_level FROM users WHERE user_id = ?', [$userId]) ?? 0);
+        $rows = [];
+        $lines = [
+            '🛒 <b>' . $label . '</b>',
+            '━━━━━━━━━━━━━━━━━━━━',
+            'Chọn sản phẩm. Hệ thống sẽ kiểm tra tồn kho, VIP và Ví NYC trước khi tạo đơn.',
+        ];
+        foreach ($products as $product) {
+            if ((int) ($product['vip_level'] ?? 0) > $vip) {
+                continue;
+            }
+            $stock = $product['stock'] === null ? 'Còn hàng' : 'Còn ' . number_format((int) $product['stock'], 0, ',', '.') . ' sản phẩm';
+            $rows[] = [[
+                'text' => self::truncate($product['name'] . ' · ' . self::money($product['price']), 55),
+                'callback_data' => 'member:order:' . (int) $product['id'],
+            ]];
+            $lines[] = '• <b>' . self::escape((string) $product['name']) . '</b> — ' . self::money($product['price']);
+            $lines[] = '  Kho: ' . self::escape($stock);
+            if (trim((string) ($product['description'] ?? '')) !== '') {
+                $lines[] = '  ' . self::escape(self::truncate((string) $product['description'], 140));
+            }
+        }
+        if ($rows === []) {
+            $lines[] = 'Chưa có sản phẩm phù hợp hoặc tài khoản chưa đủ VIP. Admin cần khai báo loại proxy trong tên, slug hoặc metadata.proxy_type.';
+        }
+        $rows[] = [['text' => '🌐 TẤT CẢ PROXY', 'callback_data' => 'member:shop-all-proxy']];
+        $rows[] = [['text' => '« QUAY LẠI MUA HÀNG', 'callback_data' => 'member:shop']];
+        $this->sendBotMessage($chatId, implode("\n", $lines), [
+            'reply_markup' => $this->inlineMenu($rows),
+        ]);
+    }
+
+    private function showPrivilegeTools(string $chatId): void
+    {
+        $this->sendBotMessage($chatId, implode("\n", [
+            '💎 <b>KHO CÔNG CỤ ĐẶC QUYỀN</b>',
+            '━━━━━━━━━━━━━━━━━━━━',
+            'Chọn tiện ích đã được HENDY hỗ trợ. Những tích hợp chưa có API chính thức sẽ hiển thị trạng thái, không giả lập chạy.',
+        ]), [
+            'reply_markup' => $this->inlineMenu([
+                [['text' => '🛡 CHECK LẠM DỤNG / GỬI CSKH', 'callback_data' => 'member:support-abuse']],
+                [['text' => '🎁 NHẬN KHUYẾN MÃI HÀNG LOẠT', 'callback_data' => 'member:tool-unavailable:bulk-promotion']],
+                [['text' => '🔗 GET LINK TẢI VIDEO', 'callback_data' => 'member:vietsub']],
+                [['text' => '🚫 SPAM SMS', 'callback_data' => 'member:tool-unavailable:sms-spam']],
+                [['text' => '🔐 QUẢN LÝ USERNAME ACC GAME', 'callback_data' => 'member:linked-accounts']],
+                [['text' => '🎟 NHẬP CODE NHANH', 'callback_data' => 'member:gift']],
+                [['text' => '🧰 KHO THUÊ TOOL', 'callback_data' => 'member:tools']],
+                [['text' => '« TRỞ VỀ MENU CHÍNH', 'callback_data' => 'member:home']],
+            ]),
+        ]);
+    }
+
+    private function showToolUnavailable(string $chatId, string $title, string $reason): void
+    {
+        $this->sendBotMessage($chatId, '⏳ <b>' . self::escape($title) . '</b>' . "\n" .
+            self::escape($reason) . "\n\n" .
+            'Bạn có thể liên hệ CSKH để yêu cầu thông tin khi có tích hợp hợp lệ.', [
+            'reply_markup' => $this->inlineMenu([
+                [['text' => '🧑‍💻 LIÊN HỆ CSKH', 'callback_data' => 'member:support']],
+                [['text' => '« QUAY LẠI KHO CÔNG CỤ', 'callback_data' => 'member:viptools']],
+                [['text' => '🏠 MENU CHÍNH', 'callback_data' => 'member:home']],
+            ]),
+        ]);
+    }
+
+    private function showAccountManagement(string $chatId): void
+    {
+        $url = $this->miniAppUrl();
+        $rows = [];
+        if ($url !== '') {
+            $rows[] = [[
+                'text' => '🚀 [MINI APP] BẢN MỚI | CHỈ MOBILE',
+                'web_app' => ['url' => $url],
+            ]];
+        } else {
+            $rows[] = [[
+                'text' => '🚀 MINI APP (CHƯA CẤU HÌNH)',
+                'callback_data' => 'member:tool-unavailable:miniapp',
+            ]];
+        }
+        $rows[] = [[
+            'text' => '🔑 PHIÊN BẢN WEB CŨ',
+            'callback_data' => 'member:legacy-login',
+        ]];
+        $rows[] = [[
+            'text' => '« TRỞ VỀ MENU CHÍNH',
+            'callback_data' => 'member:home',
+        ]];
+        $this->sendBotMessage($chatId, implode("\n", [
+            '👑 <b>TRUNG TÂM QUẢN LÝ TÀI KHOẢN</b>',
+            '━━━━━━━━━━━━━━━━━━━━',
+            'Chọn một trong hai cách truy cập:',
+            '• <b>Mini App:</b> mở giao diện mới trong Telegram, ưu tiên thiết bị di động.',
+            '• <b>Đăng nhập truyền thống:</b> link dùng một lần, có hiệu lực 5 phút.',
+            'Không chuyển tiếp link đăng nhập cho người khác.',
+        ]), [
+            'reply_markup' => $this->inlineMenu($rows),
+            'disable_web_page_preview' => true,
+        ]);
     }
 
     private function minigameGroupForBrand(string $brand): ?string
@@ -868,7 +1085,7 @@ final class BotService
             ]];
         }
         $rows[] = [['text' => '« QUAY LẠI MENU CHÍNH', 'callback_data' => 'member:home']];
-        $this->telegram->sendMessage($chatId, implode("\n", $lines), [
+        $this->sendBotMessage($chatId, implode("\n", $lines), [
             'reply_markup' => $this->inlineMenu($rows),
         ]);
     }
@@ -898,7 +1115,7 @@ final class BotService
             $lines[] = '• ' . self::escape($brand) . ': <b>' . $count . ' ACC cá nhân</b>';
         }
         $rows[] = [['text' => '« QUAY LẠI', 'callback_data' => 'member:live']];
-        $this->telegram->sendMessage($chatId, implode("\n", $lines), [
+        $this->sendBotMessage($chatId, implode("\n", $lines), [
             'reply_markup' => $this->inlineMenu($rows),
         ]);
     }
@@ -957,7 +1174,7 @@ final class BotService
             'callback_data' => 'member:live-warehouse:' . $brand,
         ]];
         $rows[] = [['text' => '« QUAY LẠI', 'callback_data' => 'member:live-group:' . $groupKey]];
-        $this->telegram->sendMessage($chatId, implode("\n", $lines), [
+        $this->sendBotMessage($chatId, implode("\n", $lines), [
             'reply_markup' => $this->inlineMenu($rows),
         ]);
     }
@@ -1043,7 +1260,7 @@ final class BotService
         }
         $rows[] = [['text' => '« QUAY LẠI', 'callback_data' => 'member:live-game:' . $brand]];
         $rows[] = [['text' => '🏠 MENU CHÍNH', 'callback_data' => 'member:home']];
-        $this->telegram->sendMessage($chatId, implode("\n", $lines), [
+        $this->sendBotMessage($chatId, implode("\n", $lines), [
             'reply_markup' => $this->inlineMenu($rows),
         ]);
     }
@@ -1086,7 +1303,7 @@ final class BotService
         }
         $rows[] = [['text' => '＋ LIÊN KẾT TÀI KHOẢN', 'callback_data' => 'member:link-new']];
         $rows[] = [['text' => '🏠 TRỞ VỀ MENU CHÍNH', 'callback_data' => 'member:home']];
-        $this->telegram->sendMessage($chatId, implode("\n", $lines), ['reply_markup' => $this->inlineMenu($rows)]);
+        $this->sendBotMessage($chatId, implode("\n", $lines), ['reply_markup' => $this->inlineMenu($rows)]);
     }
 
     private function showProducts(string $chatId, array $categories, string $title, ?string $userId = null): void
@@ -1114,7 +1331,7 @@ final class BotService
         if ($rows === []) $lines[] = 'Hiện chưa có sản phẩm phù hợp hoặc tài khoản chưa đủ cấp VIP. Admin có thể quản lý kho sản phẩm.';
         $rows[] = [['text' => '🧾 ĐƠN HÀNG CỦA TÔI', 'callback_data' => 'member:orders']];
         $rows[] = [['text' => '🏠 MENU CHÍNH', 'callback_data' => 'member:home']];
-        $this->telegram->sendMessage($chatId, implode("\n", $lines), ['reply_markup' => $this->inlineMenu($rows)]);
+        $this->sendBotMessage($chatId, implode("\n", $lines), ['reply_markup' => $this->inlineMenu($rows)]);
     }
 
     private function createOrder(string $chatId, string $userId, string $productId): void
@@ -1160,7 +1377,7 @@ final class BotService
             return [...($created ?? []), 'balance' => $remaining, 'wallet_type' => $walletType];
         });
 
-        $this->telegram->sendMessage($chatId, implode("\n", [
+        $this->sendBotMessage($chatId, implode("\n", [
             '✅ <b>ĐÃ TẠO ĐƠN HÀNG</b>',
             'Sản phẩm: <b>' . self::escape((string) $order['product_name']) . '</b>',
             'Mã đơn: <code>' . self::escape((string) $order['order_code']) . '</code>',
@@ -1192,7 +1409,7 @@ final class BotService
         if ($orders === []) {
             $lines[] = 'Bạn chưa có đơn hàng.';
         }
-        $this->telegram->sendMessage($chatId, implode("\n", $lines), [
+        $this->sendBotMessage($chatId, implode("\n", $lines), [
             'reply_markup' => $this->inlineMenu([[['text' => '🏠 MENU CHÍNH', 'callback_data' => 'member:home']]]),
         ]);
     }
@@ -1210,7 +1427,7 @@ final class BotService
         ) ?? [];
         $ticketCount = (int) Database::value('SELECT COUNT(*) FROM support_tickets WHERE user_id = ?', [$userId]);
         $linkedCount = (int) Database::value('SELECT COUNT(*) FROM linked_accounts WHERE user_id = ?', [$userId]);
-        $this->telegram->sendMessage($chatId, implode("\n", [
+        $this->sendBotMessage($chatId, implode("\n", [
             '💎 <b>TRUNG TÂM KHÁCH HÀNG HENDY</b>',
             '━━━━━━━━━━━━━━━━━━━━',
             '👤 Thành viên: <b>' . self::escape($user['name'] ?: 'Thành viên') . '</b>',
@@ -1260,7 +1477,7 @@ final class BotService
     private function sendLegacyLoginLink(string $chatId, string $userId): void
     {
         $url = $this->createWebsiteLoginUrl($userId);
-        $this->telegram->sendMessage($chatId, implode("\n", [
+        $this->sendBotMessage($chatId, implode("\n", [
             '🔑 <b>ĐĂNG NHẬP WEBSITE HENDY</b>',
             'Link chỉ sử dụng được <b>một lần</b> và hết hạn sau <b>5 phút</b>.',
             'Sau khi xác minh, website sẽ mở thẳng Trung tâm khách hàng của bạn.',
@@ -1296,7 +1513,7 @@ final class BotService
             $message[] = '⏳ Cổng đăng nhập ABCVIP chưa được cấu hình. Admin cần cung cấp URL OAuth/SSO chính thức và địa chỉ callback được nhà cung cấp hỗ trợ.';
             $message[] = 'Hiện tại chức năng liên kết ABCVIP đang tạm khóa; không nhập thông tin đăng nhập vào bot.';
         }
-        $this->telegram->sendMessage($chatId, implode("\n", $message), [
+        $this->sendBotMessage($chatId, implode("\n", $message), [
             'reply_markup' => $this->inlineMenu($rows),
             'disable_web_page_preview' => true,
         ]);
@@ -1306,7 +1523,7 @@ final class BotService
     {
         $title = $issueType === 'live_auto_reorder' ? 'AUTO ĐẶT LẠI' : 'TRÚNG KHÔNG PHÁT';
         $this->setPending($userId, 'live_order_issue', ['ticket_type' => $issueType]);
-        $this->telegram->sendMessage($chatId, '🆘 <b>YÊU CẦU ' . self::escape($title) . '</b>' . "\n" .
+        $this->sendBotMessage($chatId, '🆘 <b>YÊU CẦU ' . self::escape($title) . '</b>' . "\n" .
             'Gửi mã đơn Mini Game để CSKH kiểm tra. Yêu cầu sẽ được Admin xem xét; bot không tự tạo đơn mới hoặc tự cộng tiền.');
     }
 
@@ -1314,20 +1531,20 @@ final class BotService
     {
         $orders = VoucherService::eligibleOrders($userId, 20);
         if ($orders === []) {
-            $this->telegram->sendMessage($chatId, '🎟️ Hiện chưa có đơn nào đủ điều kiện Voucher 72H. Điều kiện: đơn đang chờ/đang xử lý và đã quá 72 giờ.');
+            $this->sendBotMessage($chatId, '🎟️ Hiện chưa có đơn nào đủ điều kiện Voucher 72H. Điều kiện: đơn đang chờ/đang xử lý và đã quá 72 giờ.');
             return;
         }
         $lines = ['🎟️ <b>YÊU CẦU VOUCHER 72H</b>', 'Gửi mã đơn đủ điều kiện trong danh sách dưới đây:', ''];
         foreach ($orders as $order) $lines[] = '• <code>' . self::escape($order['order_code']) . '</code> · ' . self::escape($order['product_name']) . ' · ' . self::money($order['amount']);
         $this->setPending($userId, 'voucher_order');
-        $this->telegram->sendMessage($chatId, implode("\n", $lines) . "\n\nYêu cầu cần Admin duyệt; chỉ cộng Ví Voucher sau khi được chấp thuận.");
+        $this->sendBotMessage($chatId, implode("\n", $lines) . "\n\nYêu cầu cần Admin duyệt; chỉ cộng Ví Voucher sau khi được chấp thuận.");
     }
 
     private function showOtpCenter(string $chatId, string $userId): void
     {
         $nycBalance = (int) (Database::value('SELECT nyc_wallet FROM users WHERE user_id = ?', [$userId]) ?? 0);
         $message = "⚙️ <b>OTP & PROXY CENTER</b>\nSố dư Ví NYC: <b>" . self::money($nycBalance) . "</b>\nChọn dịch vụ. Sản phẩm/giá lấy từ kho PostgreSQL; kết nối nhà cung cấp OTP cần cấu hình riêng.";
-        $this->telegram->sendMessage($chatId, $message, [
+        $this->sendBotMessage($chatId, $message, [
             'reply_markup' => $this->inlineMenu([
                 [['text' => '🪙 NẠP VÍ NYC TỪ VÍ CHÍNH', 'callback_data' => 'member:nyc-transfer']],
                 [['text' => '📱 THUÊ OTP SMS', 'callback_data' => 'member:otp-catalog']],
@@ -1349,7 +1566,7 @@ final class BotService
             [$userId]
         ) ?? [];
         $user = $this->getUser($userId);
-        $this->telegram->sendMessage($chatId, implode("\n", [
+        $this->sendBotMessage($chatId, implode("\n", [
             '🌐 <b>PROXY CENTER HENDY</b>',
             '━━━━━━━━━━━━━━━━━━━━',
             '👤 Thành viên: <b>' . self::escape($user['name'] ?: 'Thành viên') . '</b>',
@@ -1373,7 +1590,7 @@ final class BotService
     {
         $vip = (int) ($this->getUser($userId)['vip_level'] ?? 0);
         if ($vip < 1) {
-            $this->telegram->sendMessage($chatId, '🔒 Proxy Free yêu cầu từ VIP 1. Hãy xem Trung tâm VIP để biết mốc nâng hạng.');
+            $this->sendBotMessage($chatId, '🔒 Proxy Free yêu cầu từ VIP 1. Hãy xem Trung tâm VIP để biết mốc nâng hạng.');
             return;
         }
         $products = Database::all(
@@ -1392,7 +1609,7 @@ final class BotService
         }
         if ($products === []) $lines[] = 'Kho chưa có sản phẩm Proxy Free đang mở bán. Vui lòng quay lại sau.';
         $rows[] = [['text' => '🔙 PROXY CENTER', 'callback_data' => 'member:proxy-center']];
-        $this->telegram->sendMessage($chatId, implode("\n", $lines), ['reply_markup' => $this->inlineMenu($rows)]);
+        $this->sendBotMessage($chatId, implode("\n", $lines), ['reply_markup' => $this->inlineMenu($rows)]);
     }
 
     private function showProxyRentals(string $chatId, string $userId): void
@@ -1417,7 +1634,7 @@ final class BotService
             }
         }
         if ($orders === []) $lines[] = 'Bạn chưa có đơn Proxy.';
-        $this->telegram->sendMessage($chatId, implode("\n", $lines), ['reply_markup' => $this->inlineMenu([
+        $this->sendBotMessage($chatId, implode("\n", $lines), ['reply_markup' => $this->inlineMenu([
             [['text' => '🌐 THUÊ THÊM PROXY', 'callback_data' => 'member:proxy-products']],
             [['text' => '🔙 PROXY CENTER', 'callback_data' => 'member:proxy-center']],
         ])]);
@@ -1436,7 +1653,7 @@ final class BotService
             $lines[] = '  ' . self::money($order['amount']) . ' · ' . self::escape(self::statusLabel((string) $order['status']));
         }
         if ($orders === []) $lines[] = 'Bạn chưa có yêu cầu OTP.';
-        $this->telegram->sendMessage($chatId, implode("\n", $lines), ['reply_markup' => $this->inlineMenu([
+        $this->sendBotMessage($chatId, implode("\n", $lines), ['reply_markup' => $this->inlineMenu([
             [['text' => '📱 MỞ KHO OTP', 'callback_data' => 'member:otp-catalog']],
             [['text' => '🏠 MENU CHÍNH', 'callback_data' => 'member:home']],
         ])]);
@@ -1445,7 +1662,7 @@ final class BotService
     private function showBalance(string $chatId, string $userId): void
     {
         $user = $this->getUser($userId);
-        $this->telegram->sendMessage($chatId, '💰 <b>SỐ DƯ VÍ HENDY</b>' . "\n" .
+        $this->sendBotMessage($chatId, '💰 <b>SỐ DƯ VÍ HENDY</b>' . "\n" .
             'Ví Chính: <b>' . self::money($user['balance'] ?? 0) . '</b>' . "\n" .
             'Ví NYC: <b>' . self::money($user['nyc_wallet'] ?? 0) . '</b>' . "\n" .
             'Ví Voucher: <b>' . self::money($user['voucher_wallet'] ?? 0) . '</b>', [
@@ -1460,7 +1677,7 @@ final class BotService
     private function showWalletMenu(string $chatId, string $userId): void
     {
         $user = $this->getUser($userId);
-        $this->telegram->sendMessage($chatId, '💳 <b>NẠP TIỀN VÀO VÍ CHÍNH</b>' . "\n" .
+        $this->sendBotMessage($chatId, '💳 <b>NẠP TIỀN VÀO VÍ CHÍNH</b>' . "\n" .
             'Số dư hiện tại: <b>' . self::money($user['balance'] ?? 0) . '</b>' . "\n" .
             'Chọn nhanh số tiền hoặc nhập số tiền khác. Admin sẽ đối soát sao kê ngân hàng trước khi cộng ví.', [
             'reply_markup' => $this->inlineMenu([
@@ -1482,7 +1699,7 @@ final class BotService
     private function startVideoRequest(string $chatId, string $userId): void
     {
         $this->setPending($userId, 'video_url');
-        $this->telegram->sendMessage($chatId,
+        $this->sendBotMessage($chatId,
             '🎬 <b>YÊU CẦU VIETSUB</b>' . "\n" .
             'Gửi link video HTTPS từ nền tảng đã được cho phép (mặc định: YouTube, TikTok, Facebook).' . "\n" .
             'Hệ thống sẽ tạo job và đưa vào hàng chờ. Việc xử lý thực tế cần cấu hình VIDEO_PROCESSOR_URL và VIDEO_PROCESSOR_SECRET.', [
@@ -1531,7 +1748,7 @@ final class BotService
             }
         }
 
-        $this->telegram->sendMessage($chatId, implode("\n", $lines), [
+        $this->sendBotMessage($chatId, implode("\n", $lines), [
             'reply_markup' => $this->inlineMenu([
                 [['text' => '🎬 VIDEO JOBS', 'callback_data' => 'member:jobs']],
                 [['text' => '💳 LỊCH SỬ NẠP', 'callback_data' => 'member:deposit-history']],
@@ -1558,7 +1775,7 @@ final class BotService
         if ($jobs === []) {
             $lines[] = 'Chưa có video job nào. Bấm DỊCH VỤ VIETSUB để gửi link video.';
         }
-        $this->telegram->sendMessage($chatId, implode("\n", $lines), [
+        $this->sendBotMessage($chatId, implode("\n", $lines), [
             'reply_markup' => $this->inlineMenu([
                 [['text' => '🎬 TẠO YÊU CẦU VIETSUB', 'callback_data' => 'member:vietsub']],
                 [['text' => '🏠 MENU CHÍNH', 'callback_data' => 'member:home']],
@@ -1610,7 +1827,7 @@ final class BotService
     private function showAdminStats(string $chatId, string $userId): void
     {
         if (!TelegramAuth::isAdmin($userId)) {
-            $this->telegram->sendMessage($chatId, '⛔ Bạn không có quyền quản trị.');
+            $this->sendBotMessage($chatId, '⛔ Bạn không có quyền quản trị.');
             return;
         }
         $payments = PaymentService::stats();
@@ -1618,7 +1835,7 @@ final class BotService
         $users = (int) Database::value('SELECT COUNT(*) FROM users');
         $orders = (int) Database::value("SELECT COUNT(*) FROM orders WHERE status IN ('pending','processing')");
         $tickets = (int) Database::value("SELECT COUNT(*) FROM support_tickets WHERE status IN ('open','processing')");
-        $this->telegram->sendMessage($chatId, implode("\n", [
+        $this->sendBotMessage($chatId, implode("\n", [
             '🛡️ <b>HENDY BOT — TỔNG QUAN QUẢN TRỊ</b>',
             '👥 Thành viên: <b>' . $users . '</b>',
             '🧾 Đơn hàng cần xử lý: <b>' . $orders . '</b>',
@@ -1638,17 +1855,17 @@ final class BotService
     private function showAdminPayments(string $chatId, string $userId): void
     {
         if (!TelegramAuth::isAdmin($userId)) {
-            $this->telegram->sendMessage($chatId, '⛔ Bạn không có quyền duyệt nạp tiền.');
+            $this->sendBotMessage($chatId, '⛔ Bạn không có quyền duyệt nạp tiền.');
             return;
         }
         $pending = PaymentService::pending(15);
         if ($pending === []) {
-            $this->telegram->sendMessage($chatId, '✅ Không có yêu cầu nạp tiền đang chờ.', [
+            $this->sendBotMessage($chatId, '✅ Không có yêu cầu nạp tiền đang chờ.', [
                 'reply_markup' => $this->inlineMenu([[['text' => '🔙 QUẢN TRỊ', 'callback_data' => 'member:admin-stats']]]),
             ]);
             return;
         }
-        $this->telegram->sendMessage($chatId, '💳 <b>CÓ ' . count($pending) . ' YÊU CẦU NẠP CHỜ DUYỆT</b>' . "\n" .
+        $this->sendBotMessage($chatId, '💳 <b>CÓ ' . count($pending) . ' YÊU CẦU NẠP CHỜ DUYỆT</b>' . "\n" .
             'Chỉ bấm Duyệt sau khi đã đối soát giao dịch trên sao kê ngân hàng.');
         foreach ($pending as $payment) {
             $name = trim((string) ($payment['name'] ?? '')) ?: (string) ($payment['username'] ?? 'Thành viên');
@@ -1665,7 +1882,7 @@ final class BotService
                 '',
                 '⚠️ Đây mới là yêu cầu của người dùng, không phải bằng chứng ngân hàng đã nhận tiền.',
             ]);
-            $this->telegram->sendMessage($chatId, $text, [
+            $this->sendBotMessage($chatId, $text, [
                 'reply_markup' => $this->inlineMenu([[
                     ['text' => '✅ ĐÃ ĐỐI SOÁT — DUYỆT', 'callback_data' => 'member:payment-approve:' . $payment['payment_id']],
                     ['text' => '❌ TỪ CHỐI', 'callback_data' => 'member:payment-reject:' . $payment['payment_id']],
@@ -1680,7 +1897,7 @@ final class BotService
             throw new RuntimeException('Bạn không có quyền duyệt yêu cầu nạp.');
         }
         $result = PaymentService::approve($paymentId, $adminId);
-        $this->telegram->sendMessage($chatId, '✅ Đã duyệt yêu cầu <code>' . self::escape($paymentId) . '</code>. Cộng ' .
+        $this->sendBotMessage($chatId, '✅ Đã duyệt yêu cầu <code>' . self::escape($paymentId) . '</code>. Cộng ' .
             self::money($result['amountVnd']) . '. Số dư mới: <b>' . self::money($result['newBalance']) . '</b>.');
         $this->notifyUserOnBot(
             (string) ($result['botKey'] ?? $this->botKey),
@@ -1698,7 +1915,7 @@ final class BotService
             throw new RuntimeException('Bạn không có quyền từ chối yêu cầu nạp.');
         }
         $result = PaymentService::reject($paymentId, $adminId, 'Admin từ chối sau khi đối soát.');
-        $this->telegram->sendMessage($chatId, '❌ Đã từ chối yêu cầu <code>' . self::escape($paymentId) . '</code>. Ví không thay đổi.');
+        $this->sendBotMessage($chatId, '❌ Đã từ chối yêu cầu <code>' . self::escape($paymentId) . '</code>. Ví không thay đổi.');
         $this->notifyUserOnBot(
             (string) ($result['botKey'] ?? $this->botKey),
             (string) $result['telegramId'],
@@ -1709,12 +1926,12 @@ final class BotService
     private function showAdminVideoJobs(string $chatId, string $userId): void
     {
         if (!TelegramAuth::isAdmin($userId)) {
-            $this->telegram->sendMessage($chatId, '⛔ Bạn không có quyền quản lý video jobs.');
+            $this->sendBotMessage($chatId, '⛔ Bạn không có quyền quản lý video jobs.');
             return;
         }
         $stats = VideoJobService::stats();
         $jobs = VideoJobService::recent(15);
-        $this->telegram->sendMessage($chatId, '🎬 <b>VIDEO JOBS</b>' . "\n" .
+        $this->sendBotMessage($chatId, '🎬 <b>VIDEO JOBS</b>' . "\n" .
             'Chờ: ' . $stats['queued'] . ' · Đang xử lý: ' . $stats['processing'] . ' · Hoàn tất: ' . $stats['completed'] . ' · Lỗi: ' . $stats['failed'] . "\n" .
             'Worker chỉ dispatch khi cấu hình VIDEO_PROCESSOR_URL và VIDEO_PROCESSOR_SECRET.');
         foreach ($jobs as $job) {
@@ -1733,7 +1950,7 @@ final class BotService
                 $buttons[] = ['text' => '♻️ ĐƯA LẠI VÀO HÀNG CHỜ', 'callback_data' => 'member:video-retry:' . $job['id']];
             }
             $buttons[] = ['text' => '🔄 TẢI LẠI', 'callback_data' => 'member:admin-jobs'];
-            $this->telegram->sendMessage($chatId, implode("\n", $lines), [
+            $this->sendBotMessage($chatId, implode("\n", $lines), [
                 'reply_markup' => $this->inlineMenu([$buttons]),
             ]);
         }
@@ -1745,7 +1962,7 @@ final class BotService
             throw new RuntimeException('Bạn không có quyền chạy lại video job.');
         }
         $job = VideoJobService::retry($jobId);
-        $this->telegram->sendMessage($chatId, '♻️ Đã đưa job <code>' . self::escape(substr((string) $job['id'], 0, 8)) . '</code> về hàng chờ. Cần worker/provider đang hoạt động để xử lý.');
+        $this->sendBotMessage($chatId, '♻️ Đã đưa job <code>' . self::escape(substr((string) $job['id'], 0, 8)) . '</code> về hàng chờ. Cần worker/provider đang hoạt động để xử lý.');
         $this->notifyUserOnBot(
             (string) ($job['bot_key'] ?? $this->botKey),
             (string) $job['user_id'],
@@ -1779,7 +1996,7 @@ final class BotService
                 ' · ' . self::escape((string) ($transaction['reference_code'] ?? '—'));
         }
         if ($transactions === []) $lines[] = 'Chưa có giao dịch phát sinh.';
-        $this->telegram->sendMessage($chatId, implode("\n", $lines), [
+        $this->sendBotMessage($chatId, implode("\n", $lines), [
             'reply_markup' => $this->inlineMenu([
                 [['text' => '＋ TẠO YÊU CẦU NẠP', 'callback_data' => 'member:wallet']],
                 [['text' => '📜 LỊCH SỬ VÍ CHI TIẾT', 'callback_data' => 'member:history']],
@@ -1808,7 +2025,7 @@ final class BotService
         );
         $rate = (float) (Database::value("SELECT value FROM app_settings WHERE key = 'referral_commission_percent'") ?? '0');
         $link = $botUsername !== '' ? 'https://t.me/' . $botUsername . '?start=ref_' . $userId : 'Chưa lấy được username bot';
-        $this->telegram->sendMessage($chatId, implode("\n", [
+        $this->sendBotMessage($chatId, implode("\n", [
             '🎊 <b>GIỚI THIỆU BẠN BÈ</b>',
             'Số người đã mời: <b>' . $count . '</b>',
             'Hoa hồng đã nhận: <b>' . self::money($reward) . '</b>',
@@ -1838,7 +2055,7 @@ final class BotService
         $barLength = 10;
         $filled = (int) round(((int) ($status['progressPercent'] ?? 0)) / 10);
         $progressBar = str_repeat('🟦', max(0, min($barLength, $filled))) . str_repeat('⬛', $barLength - max(0, min($barLength, $filled)));
-        $this->telegram->sendMessage($chatId, implode("\n", [
+        $this->sendBotMessage($chatId, implode("\n", [
             '💠 <b>⩤ HENDY VIP PRO ⩥</b> 👑',
             '✨ <i>Đặc quyền hội viên · Nâng tầm trải nghiệm</i>',
             '━━━━━━━━━━━━━━━━━━━━',
@@ -1877,7 +2094,7 @@ final class BotService
         $lines[] = 'Điểm hiện có: <b>' . number_format($status['pointOld'], 0, ',', '.') . '</b>.';
         $lines[] = 'Quyền lợi chi tiết và gói nâng cấp được hiển thị theo các sản phẩm VIP do Admin cấu hình.';
 
-        $this->telegram->sendMessage($chatId, implode("\n", $lines), [
+        $this->sendBotMessage($chatId, implode("\n", $lines), [
             'reply_markup' => $this->inlineMenu([
                 [['text' => '🎁 ĐIỂM DANH VIP', 'callback_data' => 'member:vip-checkin']],
                 [['text' => '🔙 TRỞ VỀ TRUNG TÂM VIP', 'callback_data' => 'member:vip']],
@@ -1894,7 +2111,7 @@ final class BotService
             : '🎉 Điểm danh thành công! +' . $result['pointsAwarded'] .
                 ' điểm thành viên. Tổng điểm hiện có: ' . number_format($result['pointsTotal'], 0, ',', '.') .
                 '. Chuỗi điểm danh: ' . $result['streak'] . ' ngày.';
-        $this->telegram->sendMessage($chatId, $message);
+        $this->sendBotMessage($chatId, $message);
         $this->showVipWelcome($chatId, $userId);
     }
 
@@ -1906,7 +2123,7 @@ final class BotService
             throw new RuntimeException('Admin chưa cấu hình ' . $key . '.');
         }
         $label = $action === 'group' ? '🗣️ MỞ NHÓM CHAT' : '📢 MỞ KÊNH THÔNG BÁO';
-        $this->telegram->sendMessage($chatId, $action === 'group' ? '🗣️ <b>NHÓM CHAT HENDY</b>' : '📢 <b>KÊNH THÔNG BÁO HENDY</b>', [
+        $this->sendBotMessage($chatId, $action === 'group' ? '🗣️ <b>NHÓM CHAT HENDY</b>' : '📢 <b>KÊNH THÔNG BÁO HENDY</b>', [
             'reply_markup' => $this->inlineMenu([[['text' => $label, 'url' => $url]]]),
         ]);
     }
@@ -1956,7 +2173,7 @@ final class BotService
         try {
             $this->telegram->sendPhoto($chatId, $url, $caption, $markup);
         } catch (Throwable $error) {
-            $this->telegram->sendMessage($chatId, $caption . "\n\nKhông tải được ảnh QR. Vui lòng dùng đúng thông tin chuyển khoản phía trên.", $markup);
+            $this->sendBotMessage($chatId, $caption . "\n\nKhông tải được ảnh QR. Vui lòng dùng đúng thông tin chuyển khoản phía trên.", $markup);
         }
 
         $this->notifyAdmins(
@@ -1983,14 +2200,14 @@ final class BotService
         switch ((string) $pending['input_type']) {
             case 'wallet':
                 if (!preg_match('/^\d{4,12}$/', $text) || (int) $text < 10000 || (int) $text > 500000000) {
-                    $this->telegram->sendMessage($chatId, 'Số tiền hợp lệ từ 10.000 đến 500.000.000 VNĐ. Ví dụ: 50000.');
+                    $this->sendBotMessage($chatId, 'Số tiền hợp lệ từ 10.000 đến 500.000.000 VNĐ. Ví dụ: 50000.');
                     return true;
                 }
                 try {
                     $this->showDeposit($chatId, $userId, (int) $text);
                     $this->clearPending($userId);
                 } catch (Throwable $error) {
-                    $this->telegram->sendMessage($chatId, 'Chưa thể tạo thông tin nạp tiền: ' . self::escape($error->getMessage()));
+                    $this->sendBotMessage($chatId, 'Chưa thể tạo thông tin nạp tiền: ' . self::escape($error->getMessage()));
                 }
                 return true;
 
@@ -1999,7 +2216,7 @@ final class BotService
                     $job = VideoJobService::create($userId, $text, $this->botKey);
                     $this->clearPending($userId);
                     $shortId = substr((string) $job['id'], 0, 8);
-                    $this->telegram->sendMessage($chatId, '✅ <b>ĐÃ TIẾP NHẬN VIDEO JOB</b>' . "\n" .
+                    $this->sendBotMessage($chatId, '✅ <b>ĐÃ TIẾP NHẬN VIDEO JOB</b>' . "\n" .
                         'Mã job: <code>' . self::escape($shortId) . '</code>' . "\n" .
                         'Trạng thái: <b>Chờ xử lý</b>.' . "\n" .
                         'Job đã vào hàng chờ PostgreSQL. Việc tạo phụ đề tự động cần worker và VIDEO_PROCESSOR_URL/VIDEO_PROCESSOR_SECRET được cấu hình.');
@@ -2011,17 +2228,17 @@ final class BotService
                         ['inline_keyboard' => [[['text' => '🎬 XEM VIDEO JOBS', 'callback_data' => 'member:admin-jobs']]]]
                     );
                 } catch (Throwable $error) {
-                    $this->telegram->sendMessage($chatId, '❌ Không thể tạo video job: ' . self::escape($error->getMessage()));
+                    $this->sendBotMessage($chatId, '❌ Không thể tạo video job: ' . self::escape($error->getMessage()));
                 }
                 return true;
 
             case 'giftcode':
                 try {
                     $reward = $this->redeemGiftcode($userId, $text);
-                    $this->telegram->sendMessage($chatId, '🎉 Kích hoạt Giftcode thành công. Ví được cộng <b>' . self::money($reward) . '</b>.');
+                    $this->sendBotMessage($chatId, '🎉 Kích hoạt Giftcode thành công. Ví được cộng <b>' . self::money($reward) . '</b>.');
                     $this->clearPending($userId);
                 } catch (Throwable $error) {
-                    $this->telegram->sendMessage($chatId, '❌ Giftcode không hợp lệ: ' . self::escape($error->getMessage()));
+                    $this->sendBotMessage($chatId, '❌ Giftcode không hợp lệ: ' . self::escape($error->getMessage()));
                 }
                 return true;
 
@@ -2029,7 +2246,7 @@ final class BotService
                 $stage = (string) ($payload['stage'] ?? 'order');
                 if ($stage === 'order') {
                     if (!preg_match('/^[A-Za-z0-9_-]{4,40}$/', $text)) {
-                        $this->telegram->sendMessage($chatId, 'Mã đơn hàng không đúng định dạng. Hãy nhập đúng mã hiển thị trong mục Đơn hàng.');
+                        $this->sendBotMessage($chatId, 'Mã đơn hàng không đúng định dạng. Hãy nhập đúng mã hiển thị trong mục Đơn hàng.');
                         return true;
                     }
                     $order = Database::one(
@@ -2037,7 +2254,7 @@ final class BotService
                         [$text, $userId]
                     );
                     if ($order === null) {
-                        $this->telegram->sendMessage($chatId, 'Không tìm thấy đơn đã hoàn tất thuộc tài khoản của bạn. Hãy kiểm tra mã đơn hoặc chọn Ticket hỗ trợ chung.');
+                        $this->sendBotMessage($chatId, 'Không tìm thấy đơn đã hoàn tất thuộc tài khoản của bạn. Hãy kiểm tra mã đơn hoặc chọn Ticket hỗ trợ chung.');
                         return true;
                     }
                     $payload['stage'] = 'message';
@@ -2045,13 +2262,13 @@ final class BotService
                     $payload['order_code'] = (string) $order['order_code'];
                     $payload['product_name'] = (string) $order['product_name'];
                     $this->setPending($userId, 'support_abuse', $payload);
-                    $this->telegram->sendMessage($chatId, '✅ Đã xác nhận đơn <b>' . self::escape((string) $order['order_code']) . '</b>. Hãy mô tả lỗi dính lạm dụng/không nhận điểm (ít nhất 5 ký tự). Không gửi mật khẩu hoặc OTP.');
+                    $this->sendBotMessage($chatId, '✅ Đã xác nhận đơn <b>' . self::escape((string) $order['order_code']) . '</b>. Hãy mô tả lỗi dính lạm dụng/không nhận điểm (ít nhất 5 ký tự). Không gửi mật khẩu hoặc OTP.');
                     return true;
                 }
 
                 if ($stage === 'message') {
                     if (mb_strlen($text) < 5) {
-                        $this->telegram->sendMessage($chatId, 'Nội dung cần ít nhất 5 ký tự. Hãy mô tả rõ vấn đề bạn gặp phải.');
+                        $this->sendBotMessage($chatId, 'Nội dung cần ít nhất 5 ký tự. Hãy mô tả rõ vấn đề bạn gặp phải.');
                         return true;
                     }
                     $orderCode = (string) ($payload['order_code'] ?? '');
@@ -2072,7 +2289,7 @@ final class BotService
                         'Nội dung: ' . self::escape(mb_substr($text, 0, 1600)),
                         ['inline_keyboard' => [[['text' => '🎧 MỞ QUẢN LÝ TICKET', 'callback_data' => 'member:admin']]]]
                     );
-                    $this->telegram->sendMessage($chatId, '✅ Đã tạo ticket hỗ trợ dính lạm dụng #' . (int) $ticket['id'] . ' cho đơn ' . self::escape($orderCode) . '. CSKH sẽ kiểm tra và phản hồi. Việc bồi hoàn (nếu có) cần Admin xác minh thủ công.');
+                    $this->sendBotMessage($chatId, '✅ Đã tạo ticket hỗ trợ dính lạm dụng #' . (int) $ticket['id'] . ' cho đơn ' . self::escape($orderCode) . '. CSKH sẽ kiểm tra và phản hồi. Việc bồi hoàn (nếu có) cần Admin xác minh thủ công.');
                     return true;
                 }
 
@@ -2082,7 +2299,7 @@ final class BotService
             case 'support':
                 $this->clearPending($userId);
                 if (mb_strlen($text) < 5) {
-                    $this->telegram->sendMessage($chatId, 'Nội dung cần ít nhất 5 ký tự. Hãy chọn LIÊN HỆ CSKH để gửi lại.');
+                    $this->sendBotMessage($chatId, 'Nội dung cần ít nhất 5 ký tự. Hãy chọn LIÊN HỆ CSKH để gửi lại.');
                     return true;
                 }
                 $ticket = Database::one(
@@ -2090,12 +2307,12 @@ final class BotService
                     [$userId, mb_substr($text, 0, 3000)]
                 );
                 $this->notifyAdmins('🆕 YÊU CẦU CSKH #' . $ticket['id'] . "\nTelegram ID: " . $userId . "\nNội dung:\n" . self::escape(mb_substr($text, 0, 2500)));
-                $this->telegram->sendMessage($chatId, '✅ Đã tạo yêu cầu hỗ trợ #' . $ticket['id'] . '. CSKH sẽ phản hồi qua Telegram.');
+                $this->sendBotMessage($chatId, '✅ Đã tạo yêu cầu hỗ trợ #' . $ticket['id'] . '. CSKH sẽ phản hồi qua Telegram.');
                 return true;
 
             case 'live_order_issue':
                 if (!preg_match('/^[A-Za-z0-9_-]{4,40}$/', $text)) {
-                    $this->telegram->sendMessage($chatId, 'Mã đơn không đúng định dạng. Hãy nhập lại mã trong mục Đơn hàng.');
+                    $this->sendBotMessage($chatId, 'Mã đơn không đúng định dạng. Hãy nhập lại mã trong mục Đơn hàng.');
                     return true;
                 }
                 $order = Database::one(
@@ -2103,19 +2320,19 @@ final class BotService
                     [$text, $userId]
                 );
                 if ($order === null) {
-                    $this->telegram->sendMessage($chatId, 'Không tìm thấy đơn Mini Game thuộc tài khoản Telegram của bạn. Hãy kiểm tra lại mã đơn.');
+                    $this->sendBotMessage($chatId, 'Không tìm thấy đơn Mini Game thuộc tài khoản Telegram của bạn. Hãy kiểm tra lại mã đơn.');
                     return true;
                 }
                 $payload['order_id'] = (int) $order['id'];
                 $payload['order_code'] = (string) $order['order_code'];
                 $payload['product_name'] = (string) $order['product_name'];
                 $this->setPending($userId, 'live_issue_message', $payload);
-                $this->telegram->sendMessage($chatId, '✅ Đã nhận diện đơn <b>' . self::escape($order['order_code']) . '</b>. Hãy mô tả tình trạng bạn gặp phải (ít nhất 5 ký tự).');
+                $this->sendBotMessage($chatId, '✅ Đã nhận diện đơn <b>' . self::escape($order['order_code']) . '</b>. Hãy mô tả tình trạng bạn gặp phải (ít nhất 5 ký tự).');
                 return true;
 
             case 'live_issue_message':
                 if (mb_strlen($text) < 5) {
-                    $this->telegram->sendMessage($chatId, 'Vui lòng mô tả ít nhất 5 ký tự để CSKH có thể kiểm tra.');
+                    $this->sendBotMessage($chatId, 'Vui lòng mô tả ít nhất 5 ký tự để CSKH có thể kiểm tra.');
                     return true;
                 }
                 $issueType = (string) ($payload['ticket_type'] ?? 'live_win_no_reward');
@@ -2127,13 +2344,13 @@ final class BotService
                 );
                 $this->clearPending($userId);
                 $ticketId = (string) ($ticket['id'] ?? '');
-                $this->telegram->sendMessage($chatId, '✅ Đã tạo ticket <b>#' . self::escape($ticketId) . '</b>. CSKH sẽ kiểm tra đơn và phản hồi. Yêu cầu chưa tự động tạo đơn mới hoặc cộng thưởng.');
+                $this->sendBotMessage($chatId, '✅ Đã tạo ticket <b>#' . self::escape($ticketId) . '</b>. CSKH sẽ kiểm tra đơn và phản hồi. Yêu cầu chưa tự động tạo đơn mới hoặc cộng thưởng.');
                 $this->notifyAdmins('🆘 <b>TICKET MINI GAME MỚI</b>' . "\nMã ticket: <code>" . self::escape($ticketId) . '</code>' . "\nUser: <code>" . self::escape($userId) . '</code>' . "\nĐơn: <code>" . self::escape($orderCode) . '</code>' . "\nLoại: " . self::escape($title) . "\nNội dung: " . self::escape(self::truncate($text, 500)));
                 return true;
 
             case 'voucher_order':
                 if (!preg_match('/^[A-Za-z0-9_-]{4,40}$/', $text)) {
-                    $this->telegram->sendMessage($chatId, 'Mã đơn không đúng định dạng. Hãy nhập lại.');
+                    $this->sendBotMessage($chatId, 'Mã đơn không đúng định dạng. Hãy nhập lại.');
                     return true;
                 }
                 $eligible = VoucherService::eligibleOrders($userId, 100);
@@ -2142,22 +2359,22 @@ final class BotService
                     if (strcasecmp((string) $candidate['order_code'], $text) === 0) { $selected = $candidate; break; }
                 }
                 if ($selected === null) {
-                    $this->telegram->sendMessage($chatId, 'Mã đơn chưa đủ điều kiện 72 giờ, đã xử lý, hoặc không thuộc tài khoản của bạn.');
+                    $this->sendBotMessage($chatId, 'Mã đơn chưa đủ điều kiện 72 giờ, đã xử lý, hoặc không thuộc tài khoản của bạn.');
                     return true;
                 }
                 try {
                     $request = VoucherService::create($userId, (int) $selected['id'], 'Đề nghị Voucher 72H qua menu Telegram.');
                     $this->clearPending($userId);
-                    $this->telegram->sendMessage($chatId, '✅ Đã gửi yêu cầu Voucher 72H cho đơn <code>' . self::escape($text) . '</code>. Chờ Admin xét duyệt.');
+                    $this->sendBotMessage($chatId, '✅ Đã gửi yêu cầu Voucher 72H cho đơn <code>' . self::escape($text) . '</code>. Chờ Admin xét duyệt.');
                     $this->notifyAdmins('🎟️ <b>YÊU CẦU VOUCHER 72H</b>' . "\nTicket: <code>" . self::escape((string) $request['id']) . '</code>' . "\nUser: <code>" . self::escape($userId) . '</code>' . "\nĐơn: <code>" . self::escape($text) . '</code>');
                 } catch (Throwable $error) {
-                    $this->telegram->sendMessage($chatId, '❌ Không thể tạo yêu cầu Voucher: ' . self::escape($error->getMessage()));
+                    $this->sendBotMessage($chatId, '❌ Không thể tạo yêu cầu Voucher: ' . self::escape($error->getMessage()));
                 }
                 return true;
 
             case 'nyc_transfer':
                 if (!preg_match('/^\\d{1,12}$/', $text) || (int) $text < 1000 || (int) $text > 500000000) {
-                    $this->telegram->sendMessage($chatId, 'Số tiền hợp lệ từ 1.000 đến 500.000.000 VNĐ. Hãy nhập lại.');
+                    $this->sendBotMessage($chatId, 'Số tiền hợp lệ từ 1.000 đến 500.000.000 VNĐ. Hãy nhập lại.');
                     return true;
                 }
                 $amount = (int) $text;
@@ -2190,9 +2407,9 @@ final class BotService
                         return ['main' => (int) $balances['balance'], 'nyc' => (int) $balances['nyc_wallet']];
                     });
                     $this->clearPending($userId);
-                    $this->telegram->sendMessage($chatId, '✅ <b>CHUYỂN VÍ THÀNH CÔNG</b>' . "\nĐã chuyển: <b>" . self::money($amount) . "</b>" . "\nVí Chính: " . self::money($transfer['main']) . "\nVí NYC: " . self::money($transfer['nyc']));
+                    $this->sendBotMessage($chatId, '✅ <b>CHUYỂN VÍ THÀNH CÔNG</b>' . "\nĐã chuyển: <b>" . self::money($amount) . "</b>" . "\nVí Chính: " . self::money($transfer['main']) . "\nVí NYC: " . self::money($transfer['nyc']));
                 } catch (Throwable $error) {
-                    $this->telegram->sendMessage($chatId, '❌ Không thể chuyển ví: ' . self::escape($error->getMessage()));
+                    $this->sendBotMessage($chatId, '❌ Không thể chuyển ví: ' . self::escape($error->getMessage()));
                 }
                 return true;
 
@@ -2203,7 +2420,7 @@ final class BotService
                     || mb_strlen($text) < 3
                     || mb_strlen($text) > 64
                     || preg_match('/[\x00-\x20]/', $text)) {
-                    $this->telegram->sendMessage($chatId, 'Username không hợp lệ. Nhập 3–64 ký tự, không có khoảng trắng. Không gửi mật khẩu/PIN/OTP.');
+                    $this->sendBotMessage($chatId, 'Username không hợp lệ. Nhập 3–64 ký tự, không có khoảng trắng. Không gửi mật khẩu/PIN/OTP.');
                     return true;
                 }
                 $inserted = Database::run(
@@ -2213,9 +2430,9 @@ final class BotService
                 );
                 $this->clearPending($userId);
                 if ($inserted->rowCount() === 0) {
-                    $this->telegram->sendMessage($chatId, 'Tài khoản này đã có trong kho ' . self::escape($brand) . '.');
+                    $this->sendBotMessage($chatId, 'Tài khoản này đã có trong kho ' . self::escape($brand) . '.');
                 } else {
-                    $this->telegram->sendMessage($chatId, '✅ Đã thêm username vào kho ACC ' . self::escape($brand) . '.');
+                    $this->sendBotMessage($chatId, '✅ Đã thêm username vào kho ACC ' . self::escape($brand) . '.');
                 }
                 $this->showMinigamePackageManager($chatId, $userId, $brand, $productId);
                 return true;
@@ -2223,7 +2440,7 @@ final class BotService
             case 'link_username':
                 $brand = strtoupper((string) ($payload['brand'] ?? ''));
                 if (!in_array($brand, self::BRANDS, true) || mb_strlen($text) < 3 || mb_strlen($text) > 64 || preg_match('/[\x00-\x1F]/', $text)) {
-                    $this->telegram->sendMessage($chatId, 'Tên đăng nhập không hợp lệ. Không gửi mật khẩu hoặc OTP.');
+                    $this->sendBotMessage($chatId, 'Tên đăng nhập không hợp lệ. Không gửi mật khẩu hoặc OTP.');
                     return true;
                 }
                 Database::run(
@@ -2231,7 +2448,7 @@ final class BotService
                     [$userId, $brand, $text]
                 );
                 $this->clearPending($userId);
-                $this->telegram->sendMessage($chatId, '🎉 Đã liên kết ' . self::escape($brand) . ' · <code>' . self::escape($text) . '</code>.');
+                $this->sendBotMessage($chatId, '🎉 Đã liên kết ' . self::escape($brand) . ' · <code>' . self::escape($text) . '</code>.');
                 return true;
         }
         return false;
@@ -2284,11 +2501,11 @@ final class BotService
     private function addMoney(string $chatId, string $senderId, string $targetId, int $amount): void
     {
         if (!TelegramAuth::isAdmin($senderId)) {
-            $this->telegram->sendMessage($chatId, 'Bạn không có quyền sử dụng lệnh này.');
+            $this->sendBotMessage($chatId, 'Bạn không có quyền sử dụng lệnh này.');
             return;
         }
         if ($amount <= 0 || $amount > 9000000000000000) {
-            $this->telegram->sendMessage($chatId, 'Số tiền cộng không hợp lệ.');
+            $this->sendBotMessage($chatId, 'Số tiền cộng không hợp lệ.');
             return;
         }
         Database::transaction(function () use ($targetId, $amount): void {
@@ -2304,9 +2521,9 @@ final class BotService
                 [$targetId, $amount, $reference]
             );
         });
-        $this->telegram->sendMessage($chatId, 'Đã cộng ' . self::money($amount) . ' cho tài khoản ' . $targetId . '.');
+        $this->sendBotMessage($chatId, 'Đã cộng ' . self::money($amount) . ' cho tài khoản ' . $targetId . '.');
         try {
-            $this->telegram->sendMessage($targetId, 'Quản trị viên đã cộng ' . self::money($amount) . ' vào số dư tài khoản của bạn.');
+            $this->sendBotMessage($targetId, 'Quản trị viên đã cộng ' . self::money($amount) . ' vào số dư tài khoản của bạn.');
         } catch (Throwable $error) {
             error_log('Không gửi được thông báo cộng tiền: ' . $error->getMessage());
         }
@@ -2315,7 +2532,7 @@ final class BotService
     private function openAdmin(string $chatId, string $userId): void
     {
         if (!TelegramAuth::isAdmin($userId)) {
-            $this->telegram->sendMessage($chatId, '⛔ Bạn không có quyền quản trị.');
+            $this->sendBotMessage($chatId, '⛔ Bạn không có quyền quản trị.');
             return;
         }
         $this->showAdminStats($chatId, $userId);
@@ -2323,9 +2540,17 @@ final class BotService
 
     private function miniAppUrl(): string
     {
-        $base = rtrim((string) (Env::get('APP_URL') ?: Env::get('RENDER_EXTERNAL_URL', '')), '/');
-        if (!str_starts_with($base, 'https://')) return '';
-        return $base . '/?bot=' . rawurlencode($this->botKey);
+        $url = trim((string) Env::get('WEBAPP_URL', ''));
+        if ($url === '') {
+            $base = rtrim((string) (Env::get('APP_URL') ?: Env::get('RENDER_EXTERNAL_URL', '')), '/');
+            if (!str_starts_with($base, 'https://')) return '';
+            $url = $base . '/';
+        }
+        if (!self::isHttpsUrl($url)) return '';
+        if (preg_match('/([?&])bot=[^&]*/', $url)) {
+            return (string) preg_replace('/([?&])bot=[^&]*/', '$1bot=' . rawurlencode($this->botKey), $url, 1);
+        }
+        return $url . (str_contains($url, '?') ? '&' : '?') . 'bot=' . rawurlencode($this->botKey);
     }
 
     private function webAppUrl(string $section): string

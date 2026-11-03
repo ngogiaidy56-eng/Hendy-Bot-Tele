@@ -81,6 +81,18 @@ final class TelegramApi
         ]);
     }
 
+    public function editMessageText(string $chatId, int $messageId, string $text, array $options = []): array
+    {
+        return $this->call('editMessageText', [
+            'chat_id' => $chatId,
+            'message_id' => $messageId,
+            'text' => $text,
+            'parse_mode' => 'HTML',
+            'disable_web_page_preview' => true,
+            ...$options,
+        ]);
+    }
+
     public function answerCallback(string $callbackId, string $text = ''): void
     {
         // Acknowledge inline-button taps quickly so Telegram removes its spinner.

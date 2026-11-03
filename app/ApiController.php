@@ -25,7 +25,7 @@ final class ApiController
         'referral_commission_percent', 'support_message', 'vip_checkin_points', 'bot_username', 'bot_display_name', 'replay_live_url',
     ];
     private const MENU_ACTIONS = [
-        'live', 'tools', 'codes', 'wallet', 'otp', 'viptools', 'customer', 'miniapp',
+        'live', 'tools', 'shop', 'codes', 'wallet', 'otp', 'viptools', 'customer', 'account-center', 'miniapp',
         'ref', 'vip', 'group', 'news', 'gift', 'support', 'admin', 'vietsub', 'history', 'jobs', 'abcvip',
     ];
 
@@ -912,8 +912,10 @@ final class ApiController
         $mode = (string) ($this->body['menuMode'] ?? '');
         $columns = (int) ($this->body['menuColumns'] ?? 0);
         if (!in_array($mode, ['reply_keyboard', 'inline_keyboard'], true)) {
-            throw new HttpException(400, 'Loại menu phải là reply_keyboard hoặc inline_keyboard.');
+            throw new HttpException(400, 'Loại menu không hợp lệ.');
         }
+        // This menu build uses Inline Keyboard for every root/submenu transition.
+        $mode = 'inline_keyboard';
         if ($columns < 1 || $columns > 3) throw new HttpException(400, 'Số cột menu phải từ 1 đến 3.');
         $labels = $this->validateMap($this->body['buttonLabels'] ?? [], 'Tên nút', 60);
         $descriptions = $this->validateMap($this->body['buttonDescriptions'] ?? [], 'Mô tả nút', 160);

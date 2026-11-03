@@ -131,6 +131,14 @@ Token mẫu chỉ là placeholder. Không commit .env, token Telegram, mật kh�
 
 Runtime PHP chỉ đọc BOT1_TOKEN và BOT2_TOKEN. Không dùng các bí danh BOTCHINH_TOKEN, BOTPHU_TOKEN, BOT_TOKEN hoặc BOT_SECOND_TOKEN.
 
+## Menu Telegram
+
+Menu chính dùng Inline Keyboard với sáu mục: MINIGAME LIVE, THUÊ TOOL (NEW), MUA HÀNG, NẠP TIỀN, KHO CÔNG CỤ ĐẶC QUYỀN và TRUNG TÂM QUẢN LÝ TÀI KHOẢN. Callback của menu PHP cũ (`menu_chinh`, `minigame_live`, `mua_hang`, `nap_tien`, `kho_cong_cu`, `quan_ly_tai_khoan`, `web_cu`) vẫn được ánh xạ. Khi bấm nút inline, bot sửa tin nhắn menu hiện tại bằng Telegram `editMessageText`; lệnh văn bản vẫn gửi tin nhắn mới.
+
+Mục MUA HÀNG dẫn tới Proxy Tĩnh, Proxy Xoay, tất cả Proxy, OTP, Mã Code và đơn hàng. Proxy được phân loại bằng tên, slug hoặc `metadata.proxy_type`/`metadata.type`: STATIC/TINH cho Proxy Tĩnh, ROTATING/ROTATE/XOAY/DYNAMIC cho Proxy Xoay. KHO CÔNG CỤ ĐẶC QUYỀN nối các chức năng có sẵn: yêu cầu kiểm tra lạm dụng qua CSKH, link Vietsub, nhập Giftcode và quản lý username game. Khuyến mãi hàng loạt đang chờ API nhà cung cấp; spam SMS và quét tài khoản không được thực hiện, thay vào đó bot báo trạng thái rõ ràng.
+
+Trung tâm quản lý tài khoản mở `WEBAPP_URL` (fallback `APP_URL`) dưới dạng Telegram Web App và có lựa chọn đăng nhập web cũ bằng ticket dùng một lần, hết hạn sau 5 phút. URL Web App phải dùng HTTPS và cấu hình trên Render.
+
 ## Điều hướng Mini Game Live
 
 Từ nút **🚀 MINIGAME LIVE**, luồng inline keyboard đi theo ba cấp: chọn nhóm nhà cái → chọn game → chọn gói hoặc kho ACC. Ba nhóm được cấu hình trong `app/BotService.php`: QQ88/HI88/78WIN; RR88/MM88/GG88; [ABCVIP]/XX8/U888/J88/ABC8/88CLB. Từng màn hình có nút quay lại cấp trước và trở về menu chính.
