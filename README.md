@@ -133,17 +133,15 @@ Runtime PHP chỉ đọc BOT1_TOKEN và BOT2_TOKEN. Không dùng các bí danh B
 
 ## Menu Telegram
 
-Menu chính dùng Inline Keyboard với sáu mục: MINIGAME LIVE, THUÊ TOOL (NEW), MUA HÀNG, NẠP TIỀN, KHO CÔNG CỤ ĐẶC QUYỀN và TRUNG TÂM QUẢN LÝ TÀI KHOẢN. Callback của menu PHP cũ (`menu_chinh`, `minigame_live`, `mua_hang`, `nap_tien`, `kho_cong_cu`, `quan_ly_tai_khoan`, `web_cu`) vẫn được ánh xạ. Khi bấm nút inline, bot sửa tin nhắn menu hiện tại bằng Telegram `editMessageText`; lệnh văn bản vẫn gửi tin nhắn mới.
+Menu chính dùng Inline Keyboard theo bố cục: **MINIGAME LIVE | THUÊ TOOL (NEW)**; **MUA HÀNG | NẠP TIỀN**; **KHO CÔNG CỤ ĐẶC QUYỀN**; **TRUNG TÂM QUẢN LÝ TÀI KHOẢN**; cuối menu có nút `« QUAY LẠI` để tải lại menu chính. Callback PHP cũ (`menu_chinh`, `minigame_live`, `thue_tool`, `mua_hang`, `nap_tien`, `kho_cong_cu`, `quan_ly_tai_khoan`, `web_cu`) và các callback con (`rr88_mini`, `kho_acc`, `proxy_tinh`, `proxy_xoay`) vẫn được ánh xạ. Khi bấm nút inline, bot sửa tin nhắn hiện tại bằng Telegram `editMessageText`; callback được xác nhận bằng `answerCallbackQuery`, còn lệnh văn bản vẫn gửi tin nhắn mới.
 
-Mục MUA HÀNG dẫn tới Proxy Tĩnh, Proxy Xoay, tất cả Proxy, OTP, Mã Code và đơn hàng. Proxy được phân loại bằng tên, slug hoặc `metadata.proxy_type`/`metadata.type`: STATIC/TINH cho Proxy Tĩnh, ROTATING/ROTATE/XOAY/DYNAMIC cho Proxy Xoay. KHO CÔNG CỤ ĐẶC QUYỀN nối các chức năng có sẵn: yêu cầu kiểm tra lạm dụng qua CSKH, link Vietsub, nhập Giftcode và quản lý username game. Khuyến mãi hàng loạt đang chờ API nhà cung cấp; spam SMS và quét tài khoản không được thực hiện, thay vào đó bot báo trạng thái rõ ràng.
+**MINIGAME LIVE** hiển thị hai lựa chọn: `RR88 MINI | 88 ĐIỂM - 9,000đ` và `KHO ACC RR88`. Màn hình RR88 hiển thị thông tin gói và mở trình quản lý kho username cá nhân; việc mở menu không tạo đơn hàng hoặc tự trừ ví. Kho ACC hiển thị số dư Ví Chính, số lượng username, và hỗ trợ thêm/xóa username. Không yêu cầu hoặc lưu mật khẩu, PIN, OTP hay mã xác minh.
+
+**MUA HÀNG** có hai lựa chọn Proxy Tĩnh và Proxy Xoay; dữ liệu giá, tồn kho và quyền VIP đọc từ catalog PostgreSQL. Loại Proxy được phân loại bằng tên, slug hoặc `metadata.proxy_type`/`metadata.type`: STATIC/TINH cho Proxy Tĩnh, ROTATING/ROTATE/XOAY/DYNAMIC cho Proxy Xoay.
+
+**THUÊ TOOL (NEW)** có các mục kiểm tra lạm dụng qua ticket CSKH, khuyến mãi hàng loạt, GET LINK TẢI VIDEO (Vietsub), SPAM SMS, SCAN ACC GAME và NHẬP CODE NHANH. Khuyến mãi hàng loạt đang chờ API và quyền tích hợp từ nhà cung cấp; SPAM SMS và quét/đăng nhập ACC bên thứ ba không được thực hiện, các nút này chỉ trả về thông báo trạng thái an toàn. **KHO CÔNG CỤ ĐẶC QUYỀN** vẫn cung cấp các tiện ích quản lý username, Giftcode, hỗ trợ và đường vào catalog thuê tool.
 
 Trung tâm quản lý tài khoản mở `WEBAPP_URL` (fallback `APP_URL`) dưới dạng Telegram Web App và có lựa chọn đăng nhập web cũ bằng ticket dùng một lần, hết hạn sau 5 phút. URL Web App phải dùng HTTPS và cấu hình trên Render.
-
-## Điều hướng Mini Game Live
-
-Từ nút **🚀 MINIGAME LIVE**, luồng inline keyboard đi theo ba cấp: chọn nhóm nhà cái → chọn game → chọn gói hoặc kho ACC. Ba nhóm được cấu hình trong `app/BotService.php`: QQ88/HI88/78WIN; RR88/MM88/GG88; [ABCVIP]/XX8/U888/J88/ABC8/88CLB. Từng màn hình có nút quay lại cấp trước và trở về menu chính.
-
-Gói RR88 mặc định hiển thị `RR88 MINI | 88 ĐIỂM - 9,000đ`. Các gói khác được lấy từ `products` có `category=minigame` và brand khớp trong `metadata.brand`, slug hoặc tên. Màn hình kho hiển thị số dư Ví Chính và số username của thành viên đã lưu trong `linked_accounts`; mở màn hình không tự mua gói hoặc trừ ví. Chỉ lưu username, không lưu mật khẩu, PIN, OTP hoặc mã xác minh. Dữ liệu ví và tài khoản thành viên đang dùng chung giữa hai bot; trạng thái hội thoại và menu vẫn tách theo bot.
 
 Trước khi triển khai, gán đúng token trong Render:
 - `BOT1_TOKEN` = token lấy từ BotFather của **@HendyBot_Bot**.
