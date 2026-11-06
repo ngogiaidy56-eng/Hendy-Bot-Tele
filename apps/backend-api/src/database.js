@@ -1,4 +1,9 @@
-const { Pool } = require('pg');
+let Pool = null;
+try {
+  ({ Pool } = require('pg'));
+} catch (_) {
+  // pg is optional; createSqlitePool is used as default local engine
+}
 const path = require('path');
 
 const dbUrl = String(process.env.DATABASE_URL || '').trim();
@@ -19,10 +24,12 @@ function createSqlitePool() {
 
   function executeQuery(sql, params = []) {
     let cleanSql = sql
-      .replace(/TIMESTAMPTZ/gi, 'TEXT')
+      .replace(/BIGSERIAL\s+PRIMARY\s+KEY/gi, 'INTEGER PRIMARY KEY AUTOINCREMENT')
       .replace(/BIGSERIAL/gi, 'INTEGER PRIMARY KEY AUTOINCREMENT')
+      .replace(/TIMESTAMPTZ/gi, 'TEXT')
       .replace(/JSONB/gi, 'TEXT')
-      .replace(/NOW\(\)/gi, "datetime('now')")
+      .replace(/NOW\(\)/gi, 'CURRENT_TIMESTAMP')
+      .replace(/NUMERIC\(\d+,\s*\d+\)/gi, 'NUMERIC')
       .replace(/::\w+(\[\])?/gi, '')
       .replace(/\$(\d+)/g, '?');
 
@@ -51,6 +58,10 @@ function createSqlitePool() {
     }
 
     try {
+      if (params.length === 0 && !/^\s*SELECT/i.test(cleanSql) && !/RETURNING/i.test(cleanSql)) {
+        db.exec(cleanSql);
+        return { rows: [], rowCount: 0 };
+      }
       const stmt = db.prepare(cleanSql);
       if (/^\s*SELECT/i.test(cleanSql) || /RETURNING/i.test(cleanSql)) {
         const rows = stmt.all(...params);
@@ -85,7 +96,7 @@ function createSqlitePool() {
 }
 
 let pool;
-if (!isPlaceholderDb) {
+if (!isPlaceholderDb && Pool) {
   try {
     pool = new Pool({
       connectionString: dbUrl,
@@ -115,6 +126,9 @@ async function initDb() {
       total_deposited NUMERIC(18, 0) NOT NULL DEFAULT 0,
       vip_level INTEGER NOT NULL DEFAULT 0,
       ref_by TEXT,
+      nyc_wallet NUMERIC(18, 0) NOT NULL DEFAULT 0,
+      voucher_wallet NUMERIC(18, 0) NOT NULL DEFAULT 0,
+      point_old BIGINT NOT NULL DEFAULT 0,
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
 
@@ -229,6 +243,7 @@ async function initDb() {
     CREATE TABLE IF NOT EXISTS support_tickets (
       id BIGSERIAL PRIMARY KEY,
       user_id TEXT NOT NULL,
+      ticket_type TEXT NOT NULL DEFAULT 'support',
       subject TEXT NOT NULL,
       message TEXT NOT NULL,
       status TEXT NOT NULL DEFAULT 'open',
@@ -236,6 +251,87 @@ async function initDb() {
       admin_reply TEXT NOT NULL DEFAULT '',
       created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
       updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS payment_requests (
+      payment_id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      amount NUMERIC(18, 0) NOT NULL,
+      bot_key TEXT NOT NULL DEFAULT 'primary',
+      transfer_content TEXT NOT NULL,
+      bank_id TEXT NOT NULL,
+      account_number TEXT NOT NULL,
+      account_holder TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      reviewed_by TEXT,
+      reviewed_at TIMESTAMPTZ,
+      admin_note TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS voucher_requests (
+      id BIGSERIAL PRIMARY KEY,
+      order_id BIGINT,
+      user_id TEXT NOT NULL,
+      order_code TEXT NOT NULL,
+      reason TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'pending',
+      reward_amount NUMERIC(18, 0) NOT NULL DEFAULT 0,
+      reviewed_by TEXT,
+      reviewed_at TIMESTAMPTZ,
+      admin_note TEXT NOT NULL DEFAULT '',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS vip_checkins (
+      id BIGSERIAL PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      checkin_date TEXT NOT NULL,
+      points_awarded INTEGER NOT NULL DEFAULT 0,
+      streak_count INTEGER NOT NULL DEFAULT 1,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (user_id, checkin_date)
+    );
+    CREATE TABLE IF NOT EXISTS realtime_events (
+      id BIGSERIAL PRIMARY KEY,
+      event_type TEXT NOT NULL,
+      audience TEXT NOT NULL DEFAULT 'admin',
+      payload JSONB NOT NULL DEFAULT '{}'::jsonb,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS realtime_tickets (
+      ticket_hash TEXT PRIMARY KEY,
+      admin_user_id TEXT NOT NULL,
+      audience TEXT NOT NULL DEFAULT 'admin',
+      expires_at TIMESTAMPTZ NOT NULL,
+      consumed_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS module_artifacts (
+      id BIGSERIAL PRIMARY KEY,
+      module_key TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      stored_name TEXT NOT NULL,
+      mime_type TEXT NOT NULL,
+      sha256 TEXT NOT NULL,
+      uploaded_by TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending_review',
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS video_jobs (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      bot_key TEXT NOT NULL DEFAULT 'primary',
+      source_url TEXT NOT NULL,
+      provider_job_id TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'queued',
+      progress SMALLINT NOT NULL DEFAULT 0,
+      output_url TEXT NOT NULL DEFAULT '',
+      error_message TEXT NOT NULL DEFAULT '',
+      attempts INTEGER NOT NULL DEFAULT 0,
+      claimed_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      completed_at TIMESTAMPTZ
     );
     CREATE TABLE IF NOT EXISTS giftcodes (
       code TEXT PRIMARY KEY,
